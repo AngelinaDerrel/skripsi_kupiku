@@ -5,7 +5,7 @@ function buildUrl(path) {
   return BASE + (path.startsWith('/') ? path : `/${path}`);
 }
 
-async function request(path, { method = 'GET', body = null, headers = {}, credentials = 'include' } = {}) {
+async function request(path, { method = 'GET', body = null, headers = {}, credentials = 'omit' } = {}) {
   const opts = { method, headers: { 'Content-Type': 'application/json', ...headers }, credentials };
   if (body) opts.body = JSON.stringify(body);
 

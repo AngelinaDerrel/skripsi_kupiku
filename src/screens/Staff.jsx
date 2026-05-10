@@ -1,8 +1,8 @@
 import React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import NavIcon from '../components/NavIcon.jsx';
-import { STAFF as INITIAL } from '../data/staff.js';
+import api from '../lib/api.js';
 
 const NAV = [
   { id: 'overview', label: 'Overview', icon: 'home' },
@@ -20,25 +20,126 @@ const NAV_BOTTOM = [
 export default function Staff() {
   const nav = useNavigate();
   const loc = useLocation();
-  const [list, setList] = useState(INITIAL.slice());
+  const [list, setList] = useState([]);
   const [showAdd, setShowAdd] = useState(false);
   const [name, setName] = useState('');
-  const [role, setRole] = useState('Barista');
+  const [role, setRole] = useState(null);
   const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [positions, setPositions] = useState([]);
+  const [posLoading, setPosLoading] = useState(false);
+  const [posError, setPosError] = useState(null);
+  const [staffLoading, setStaffLoading] = useState(false);
+  const [staffError, setStaffError] = useState(null);
+  const [editingId, setEditingId] = useState(null);
 
   const raw = localStorage.getItem('kupiku_user');
   let currentRole = null;
   try { currentRole = raw ? JSON.parse(raw).role : null; } catch { currentRole = null; }
   const canAdd = currentRole === 'admin' || currentRole === 'owner';
 
-  function handleAdd(e) {
-    e.preventDefault();
+  async function handleAdd() {
     if (!name || !username) return;
-    const id = `S-${String(Math.floor(Math.random() * 900) + 100)}`;
-    const next = { id, name, role, username };
-    setList((s) => [next, ...s]);
-    setName(''); setUsername(''); setRole('Barista');
+    if (!role) { setError('Pilih role dulu'); return; }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const base = {
+        nama_pegawai: name,
+        email_pegawai: username,
+        id_jabatan: Number(role),
+      };
+      // include password only when provided (create or update)
+      if (password) base.pw_pegawai = password;
+
+      if (editingId) {
+        const updated = await api.put(`pegawai/${editingId}`, base);
+        const mapped = {
+          id: updated?.id_pegawai || editingId,
+          name: updated?.nama_pegawai || name,
+          role: updated?.jabatan?.jabatan || updated?.Jabatan?.jabatan || (positions.find((p) => String(p.id_jabatan) === String(base.id_jabatan)) || {}).jabatan || '',
+          username: updated?.email_pegawai || username,
+        };
+        setList((s) => s.map((it) => (it.id === editingId ? mapped : it)));
+        setEditingId(null);
+      } else {
+        const created = await api.post('pegawai', base);
+        const mapped = {
+          id: created?.id_pegawai,
+          name: created?.nama_pegawai,
+          role: created?.jabatan?.jabatan || created?.Jabatan?.jabatan || (positions.find((p) => String(p.id_jabatan) === String(base.id_jabatan)) || {}).jabatan || '',
+          username: created?.email_pegawai,
+        };
+        setList((s) => [mapped, ...s]);
+      }
+
+      setName(''); setUsername(''); setPassword('');
+      setShowAdd(false);
+    } catch (err) {
+      const parts = [];
+      if (err?.message) parts.push(err.message);
+      if (err?.status) parts.push(`status:${err.status}`);
+      if (err?.data) {
+        try { parts.push(JSON.stringify(err.data)); } catch { parts.push(String(err.data)); }
+      }
+      setError(parts.length ? parts.join(' — ') : 'Failed to create staff');
+    } finally {
+      setLoading(false);
+    }
   }
+
+  useEffect(() => {
+    let mounted = true;
+    async function fetchStaff() {
+      setStaffLoading(true);
+      setStaffError(null);
+      try {
+        const data = await api.get('pegawai');
+        if (!mounted) return;
+        const arr = Array.isArray(data) ? data : (data?.data ?? []);
+        const mapped = arr
+          .map((it) => ({
+            id: it.id_pegawai,
+            name: it.nama_pegawai || '',
+            role: it.Jabatan?.jabatan || it.jabatan?.jabatan || '',
+            username: it.email_pegawai || '',
+          }))
+          .sort((a, b) => Number(a.id) - Number(b.id));
+        setList(mapped);
+      } catch (err) {
+        if (!mounted) return;
+        setStaffError(err?.message || 'Failed to load staff');
+      } finally {
+        if (mounted) setStaffLoading(false);
+      }
+    }
+    fetchStaff();
+    return () => { mounted = false; };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    async function fetchPositions() {
+      setPosLoading(true);
+      setPosError(null);
+      try {
+        const data = await api.get('jabatan');
+        if (!mounted) return;
+        const arr = Array.isArray(data) ? data : (data?.data ?? []);
+        setPositions(arr);
+      } catch (err) {
+        if (!mounted) return;
+        setPosError(err?.message || 'Failed to load positions');
+      } finally {
+        if (mounted) setPosLoading(false);
+      }
+    }
+    fetchPositions();
+    return () => { mounted = false; };
+  }, []);
 
   return (
     <div className="kp" style={{ display: 'flex', minHeight: '100vh' }}>
@@ -47,7 +148,7 @@ export default function Staff() {
         borderRight: '1px solid var(--line)', padding: '22px 14px',
         display: 'flex', flexDirection: 'column'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 8px 22px', cursor: 'pointer' }} onClick={() => nav('/')}> 
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 8px 22px', cursor: 'pointer' }} onClick={() => nav('/')}>
           <div>
             <div style={{ fontWeight: 600, fontSize: 14 }}>Kupiku Coffee</div>
             <div className="kp-mono" style={{ fontSize: 10, color: 'var(--text-muted)' }}>Yogyakarta</div>
@@ -108,31 +209,74 @@ export default function Staff() {
             <h1 style={{ fontSize: 18, fontWeight: 500, margin: '4px 0 0' }}>Staff management</h1>
           </div>
           {canAdd && (
-            <button className="kp-btn" onClick={() => setShowAdd(true)}>+ New staff</button>
+            <button className="kp-btn" onClick={() => { setEditingId(null); setName(''); setUsername(''); setPassword(''); setShowAdd(true); }}>+ New staff</button>
           )}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 18 }}>
-          <div className="kp-card" style={{ padding: 0 }}>
-            <div style={{ padding: 14, borderBottom: '1px solid var(--line)', fontSize: 11, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr 120px 120px', gap: 12 }}>
-                <div>Staff ID</div><div>Name</div><div>Role</div><div>Username</div>
-              </div>
-            </div>
-
-            <div style={{ maxHeight: '60vh', overflow: 'auto' }}>
-              {list.map((s) => (
-                <div key={s.id} style={{ display: 'grid', gridTemplateColumns: '120px 1fr 120px 120px', gap: 12, padding: 14, borderBottom: '1px solid var(--line)', alignItems: 'center' }}>
-                  <div className="kp-mono" style={{ color: 'var(--text-muted)' }}>{s.id}</div>
-                  <div style={{ fontWeight: 500 }}>{s.name}</div>
-                  <div style={{ color: 'var(--text-muted)' }}>{s.role}</div>
-                  <div className="kp-mono" style={{ color: 'var(--text-muted)' }}>{s.username}</div>
-                </div>
+        <div className="kp-card" style={{ padding: 0 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, tableLayout: 'fixed' }}>
+            <colgroup>
+              <col style={{ width: 100 }} />
+              <col />
+              <col style={{ width: 100 }} />
+              <col style={{ width: '50%' }} />
+              <col style={{ width: 150 }} />
+            </colgroup>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--line)' }}>
+                <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 400 }}>Staff ID</th>
+                <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 400 }}>Name</th>
+                <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 400 }}>Role</th>
+                <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 400 }}>Username</th>
+                <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 400 }}>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {staffLoading && (
+                <tr><td colSpan={5} style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>Loading staff…</td></tr>
+              )}
+              {staffError && !staffLoading && (
+                <tr><td colSpan={5} style={{ padding: 20, textAlign: 'center', color: 'var(--danger)', fontSize: 13 }}>{staffError}</td></tr>
+              )}
+              {!staffLoading && !staffError && list.length === 0 && (
+                <tr><td colSpan={5} style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>Belum ada staff. Klik "+ New staff" untuk menambah.</td></tr>
+              )}
+              {!staffLoading && list.map((s) => (
+                <tr key={s.id} style={{ borderBottom: '1px solid var(--line)' }}>
+                  <td className="kp-mono" style={{ padding: '10px 12px', color: 'var(--text-muted)', fontSize: 12 }}>
+                    {s.id ? `#${String(s.id).padStart(4, '0')}` : '—'}
+                  </td>
+                  <td style={{ padding: '10px 12px', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name || '—'}</td>
+                  <td style={{ padding: '10px 12px', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.role || '—'}</td>
+                  <td className="kp-mono" style={{ padding: '10px 12px', color: 'var(--text-muted)', fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.username || '—'}</td>
+                  <td style={{ padding: '10px 12px' }}>
+                    <div style={{ display: 'inline-flex', gap: 6 }}>
+                      <button className="kp-btn kp-btn-ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => {
+                        setEditingId(s.id);
+                        setName(s.name || '');
+                        setUsername(s.username || '');
+                        const pos = positions.find((p) => p.jabatan === s.role);
+                        setRole(pos ? String(pos.id_jabatan) : '');
+                        setShowAdd(true);
+                      }}>Edit</button>
+                      <button className="kp-btn kp-btn-danger" style={{ padding: '4px 10px', fontSize: 12 }} onClick={async () => {
+                        if (!confirm('Hapus staff ini?')) return;
+                        try {
+                          await api.del(`pegawai/${s.id}`);
+                          setList((cur) => cur.filter((x) => x.id !== s.id));
+                        } catch (err) {
+                          alert((err && err.message) || 'Failed to delete');
+                        }
+                      }}>Delete</button>
+                    </div>
+                  </td>
+                </tr>
               ))}
-            </div>
-          </div>
+            </tbody>
+          </table>
         </div>
       </main>
+
       {showAdd && (
         <div onClick={() => setShowAdd(false)} style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60
@@ -146,19 +290,31 @@ export default function Staff() {
               <button className="kp-btn kp-btn-ghost" onClick={() => setShowAdd(false)}>Close</button>
             </div>
 
-            <form onSubmit={(e) => { handleAdd(e); setShowAdd(false); }} style={{ display: 'grid', gap: 10, marginTop: 12 }}>
-              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" style={{ padding: 10, borderRadius: 8, border: '1px solid var(--line-strong)', background: 'var(--surface)' }} />
-              <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username" style={{ padding: 10, borderRadius: 8, border: '1px solid var(--line-strong)', background: 'var(--surface)' }} />
-              <select value={role} onChange={(e) => setRole(e.target.value)} style={{ padding: 10, borderRadius: 8, border: '1px solid var(--line-strong)', background: 'var(--surface)', color: 'var(--text)' }}>
-                <option style={{ color: 'var(--text)' }}>Barista</option>
-                <option style={{ color: 'var(--text)' }}>Cashier</option>
-                <option style={{ color: 'var(--text)' }}>Manager</option>
+            <form onSubmit={(e) => { e.preventDefault(); handleAdd(); }} style={{ display: 'grid', gap: 10, marginTop: 12 }}>
+              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" style={{ padding: 10, borderRadius: 8, border: '1px solid var(--line-strong)', background: 'var(--surface)', color: 'var(--text)' }} />
+              <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="email@example.com" style={{ padding: 10, borderRadius: 8, border: '1px solid var(--line-strong)', background: 'var(--surface)', color: 'var(--text)' }} />
+              <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 8 characters" type="password" style={{ padding: 10, borderRadius: 8, border: '1px solid var(--line-strong)', background: 'var(--surface)', color: 'var(--text)' }} />
+              <select value={role ?? ''} onChange={(e) => setRole(e.target.value)} style={{ padding: 10, borderRadius: 8, border: '1px solid var(--line-strong)', background: 'var(--surface)', color: 'var(--text)' }}>
+                {posLoading && <option value="">Loading…</option>}
+                {!posLoading && positions && positions.length > 0 && positions.map((p) => (
+                  <option key={p.id_jabatan} value={p.id_jabatan} style={{ color: 'var(--text)' }}>{p.jabatan}</option>
+                ))}
+                {!posLoading && (!positions || positions.length === 0) && (
+                  <>
+                    <option value="1" style={{ color: 'var(--text)' }}>Barista</option>
+                    <option value="2" style={{ color: 'var(--text)' }}>Cashier</option>
+                    <option value="3" style={{ color: 'var(--text)' }}>Manager</option>
+                  </>
+                )}
               </select>
+              {posError && <div style={{ color: 'var(--danger)', fontSize: 12 }}>{posError}</div>}
 
               <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-                <button className="kp-btn" type="submit" disabled={!canAdd}>Create</button>
+                <button className="kp-btn" type="submit" disabled={!canAdd || loading}>{editingId ? (loading ? 'Saving…' : 'Save') : (loading ? 'Creating…' : 'Create')}</button>
+                {editingId && <button type="button" className="kp-btn kp-btn-ghost" onClick={() => { setEditingId(null); setName(''); setUsername(''); setPassword(''); setShowAdd(false); }}>Cancel</button>}
                 {!canAdd && <div style={{ color: 'var(--text-muted)', alignSelf: 'center' }}>Only admin/owner can create staff</div>}
               </div>
+              {error && <div style={{ color: 'var(--danger)', marginTop: 8 }}>{error}</div>}
             </form>
           </div>
         </div>
