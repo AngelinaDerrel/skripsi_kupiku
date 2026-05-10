@@ -1,3 +1,5 @@
+import React from 'react';
+
 export default function MoodGlyph({ shape, active }) {
   const color = active ? 'var(--brown-3)' : 'var(--text-muted)';
   const stroke = active ? 1.75 : 1.25;

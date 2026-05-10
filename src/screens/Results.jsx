@@ -1,3 +1,4 @@
+import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { DRINKS } from '../data/drinks.js';
 import { MENU_ITEMS } from '../data/menuItems.js';
@@ -15,6 +16,8 @@ export default function Results() {
   const mood = state?.mood || null;
   const flavor = state?.flavor || null;
   const temp = state?.temp || null;
+  const recNames = state?.recommendations || null;
+  const serverInput = state?.serverInput || null;
 
   function applyFilters() {
     let items = MENU_ITEMS.slice();
@@ -35,7 +38,15 @@ export default function Results() {
     return items;
   }
 
-  const matches = (mood || flavor || temp) ? applyFilters() : null;
+  // If backend returned recommendation names, map them to MENU_ITEMS preserving order
+  const recommendedMatches = recNames && Array.isArray(recNames) ? recNames.map((n) => {
+    const found = MENU_ITEMS.find(mi => mi.name.toLowerCase() === String(n).toLowerCase());
+    if (found) return found;
+    // fallback minimal object when menu item not found locally
+    return { id: `REC-${n}`, name: String(n), desc: '', price: '', notes: [] };
+  }) : null;
+
+  const matches = recommendedMatches || ((mood || flavor || temp) ? applyFilters() : null);
   return (
     <div className="kp" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <div style={{
@@ -57,9 +68,11 @@ export default function Results() {
 
         <div style={{ padding: '52px 56px 32px', display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 60, alignItems: 'end' }}>
         <div>
-          <div className="kp-eyebrow" style={{ marginBottom: 14 }}>{mood ? `Reading: ${mood.toLowerCase()} · preference: ${flavor || 'any'} · ${temp || ''}` : 'Reading: curated picks'}</div>
+          <div className="kp-eyebrow" style={{ marginBottom: 14 }}>
+            {serverInput ? `Reading: ${serverInput.mood} · preference: ${serverInput.rasa} · ${serverInput.temperatur}` : (mood ? `Reading: ${mood.toLowerCase()} · preference: ${flavor || 'any'} · ${temp || ''}` : 'Reading: curated picks')}
+          </div>
           <h2 className="kp-display" style={{ fontSize: 52, lineHeight: 1.02, margin: 0 }}>
-            {mood ? `Matches for ${mood}` : 'Top picks for you'}
+            {serverInput ? `Matches for ${serverInput.mood}` : (mood ? `Matches for ${mood}` : 'Top picks for you')}
           </h2>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingBottom: 8 }}>
@@ -89,6 +102,9 @@ export default function Results() {
                     <div>
                       <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}>
                         <span className="kp-chip">{(matches[0].mood || '').toUpperCase()}</span>
+                        {String(matches[0].id || '').startsWith('REC-') && (
+                          <span className="kp-chip" style={{ background: 'transparent', color: 'var(--text-muted)', borderColor: 'var(--line-strong)' }}>Server</span>
+                        )}
                         <span className="kp-mono" style={{ fontSize: 11, color: 'var(--brown-3)' }}>Top pick</span>
                       </div>
                       <h3 className="kp-display" style={{ fontSize: 38, margin: 0, lineHeight: 1 }}>{matches[0].name}</h3>
@@ -123,7 +139,12 @@ export default function Results() {
                   <div className="kp-img-placeholder" data-label={`DRINK · ${it.name.toUpperCase()}`} style={{ borderRadius: 0, height: 180 }} />
                   <div style={{ padding: 20 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                      <span className="kp-chip">{(it.mood || '').toUpperCase()}</span>
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <span className="kp-chip">{(it.mood || '').toUpperCase()}</span>
+                        {String(it.id || '').startsWith('REC-') && (
+                          <span className="kp-mono" style={{ fontSize: 10, color: 'var(--text-muted)' }}>Server recommendation</span>
+                        )}
+                      </div>
                       <span className="kp-mono" style={{ fontSize: 10, color: 'var(--brown-3)' }}>match</span>
                     </div>
                     <h4 style={{ fontSize: 18, margin: 0, fontWeight: 500 }}>{it.name}</h4>

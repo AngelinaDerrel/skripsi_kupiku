@@ -1,3 +1,4 @@
+import React from 'react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MENU_CATEGORIES, MENU_ITEMS } from '../data/menuItems.js';

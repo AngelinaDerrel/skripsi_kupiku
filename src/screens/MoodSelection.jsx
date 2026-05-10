@@ -1,12 +1,38 @@
-import { useState } from 'react';
+import React from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MOODS } from '../data/moods.js';
 import MoodGlyph from '../components/MoodGlyph.jsx';
+import api from '../lib/api';
 
 export default function MoodSelection() {
   const nav = useNavigate();
-  const [active, setActive] = useState('calm');
-  const current = MOODS.find((m) => m.id === active);
+  const [moodsList, setMoodsList] = useState(MOODS);
+  const [active, setActive] = useState(MOODS[0]?.id || null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const current = moodsList.find((m) => m.id === active) || MOODS[0];
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await api.get('/moods');
+        if (!cancelled && Array.isArray(data) && data.length) {
+          setMoodsList(data);
+          setActive(data[0].id || data[0].name || data[0].slug);
+        }
+      } catch (err) {
+        if (!cancelled) setError(err.message || 'Failed to load moods');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, []);
 
   return (
     <div className="kp" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
@@ -39,10 +65,11 @@ export default function MoodSelection() {
           </p>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginTop: 40 }}>
-            {MOODS.map((m, idx) => {
-              const isActive = m.id === active;
+            {moodsList.map((m, idx) => {
+              const isActive = m.id === active || m.name === active;
+              const idKey = m.id || m.name;
               return (
-                <div key={m.id} onClick={() => setActive(m.id)} className="kp-card" style={{
+                <div key={idKey} onClick={() => setActive(idKey)} className="kp-card" style={{
                   padding: 22, cursor: 'pointer',
                   background: isActive ? 'linear-gradient(160deg, rgba(107,79,58,0.22), rgba(107,79,58,0.05))' : 'var(--surface)',
                   border: isActive ? '1px solid rgba(168,131,95,0.55)' : '1px solid var(--line)',
@@ -96,6 +123,8 @@ export default function MoodSelection() {
           <div style={{ marginTop: 20 }}>
             <div className="kp-eyebrow" style={{ fontSize: 10 }}>Selected mood</div>
             <div style={{ fontSize: 16, marginTop: 8 }}>{current.name}</div>
+            {loading && <div className="kp-mono" style={{ fontSize: 12, color: 'var(--text-muted)' }}>Loading moods...</div>}
+            {error && <div style={{ fontSize: 13, color: 'red' }}>Error: {error}</div>}
           </div>
 
           <div style={{ marginTop: 16 }}>

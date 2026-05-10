@@ -1,3 +1,4 @@
+import React from 'react';
 import { useState, useMemo } from 'react';
 import StaffLayout from './StaffLayout.jsx';
 import { STOCK_ITEMS } from '../data/stockItems.js';

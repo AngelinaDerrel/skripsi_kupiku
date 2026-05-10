@@ -1,14 +1,16 @@
-import { useState } from 'react';
+import React from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { MENU_ITEMS } from '../data/menuItems.js';
 import { MOODS } from '../data/moods.js';
 import MoodGlyph from '../components/MoodGlyph.jsx';
+import api from '../lib/api';
 
 const FLAVORS = [
   { id: 'manis', label: 'Manis' },
   { id: 'pahit', label: 'Pahit' },
-  { id: 'balance', label: 'Balance' },
-  { id: 'strong', label: 'Strong' },
+  { id: 'asam', label: 'Asam' },
+
 ];
 
 const TEMPS = [
@@ -33,6 +35,10 @@ export default function PreferenceFlow() {
   const [step, setStep] = useState(2);
   const [flavor, setFlavor] = useState(null);
   const [temp, setTemp] = useState(null);
+  const [remoteMatches, setRemoteMatches] = useState(null);
+  const [remoteLoading, setRemoteLoading] = useState(false);
+  const [remoteError, setRemoteError] = useState(null);
+  const [serverInput, setServerInput] = useState(null);
 
   function applyFilters() {
     let items = MENU_ITEMS.slice();
@@ -53,7 +59,34 @@ export default function PreferenceFlow() {
     return items;
   }
 
-  const results = step === 3 ? applyFilters() : [];
+  const localResults = step === 3 ? applyFilters() : [];
+  const results = remoteMatches && Array.isArray(remoteMatches) ? remoteMatches : localResults;
+
+  async function handleShowMatches() {
+    // prefer server-side recommendations via POST to /recommendation
+    setRemoteLoading(true);
+    setRemoteError(null);
+    try {
+      const payload = { mood: selectedMood || '', rasa: flavor || '', temperatur: temp || '' };
+      const res = await api.post('/recommendation', payload);
+      const recs = res && res.recommendations ? res.recommendations : null;
+      const input = res && res.input ? res.input : null;
+      if (input) setServerInput(input);
+      if (Array.isArray(recs) && recs.length) {
+        setRemoteMatches(recs);
+        nav('/results', { state: { mood: selectedMood, flavor, temp, recommendations: recs, serverInput: input } });
+        return;
+      }
+      // fallback to local results
+      nav('/results', { state: { mood: selectedMood, flavor, temp } });
+    } catch (err) {
+      setRemoteError(err?.message || 'Failed to get recommendations');
+      // still navigate with local fallback
+      nav('/results', { state: { mood: selectedMood, flavor, temp, serverInput: serverInput } });
+    } finally {
+      setRemoteLoading(false);
+    }
+  }
 
   return (
     <div className="kp" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
@@ -139,7 +172,7 @@ export default function PreferenceFlow() {
 
               <div style={{ marginTop: 28, display: 'flex', gap: 12 }}>
                 <button className="kp-btn kp-btn-ghost" onClick={() => setStep(2)}>Back</button>
-                <button className="kp-btn" onClick={() => nav('/results', { state: { mood: selectedMood, flavor, temp } })} disabled={!temp}>Show Matches</button>
+                <button className="kp-btn" onClick={handleShowMatches} disabled={!temp || remoteLoading}>{remoteLoading ? 'Finding...' : 'Show Matches'}</button>
               </div>
             </div>
           )}
@@ -162,7 +195,7 @@ export default function PreferenceFlow() {
           {/* Step-aware summary: only show fields that have been selected */}
           <div style={{ marginTop: 20 }}>
             <div className="kp-eyebrow" style={{ fontSize: 10 }}>Selected mood</div>
-            <div style={{ fontSize: 16, marginTop: 8 }}>{currentMood.name}</div>
+            <div style={{ fontSize: 16, marginTop: 8 }}>{serverInput?.mood ? serverInput.mood : currentMood.name}</div>
           </div>
 
           {step >= 2 && (
@@ -182,6 +215,14 @@ export default function PreferenceFlow() {
           <div style={{ marginTop: 20 }}>
             <div className="kp-eyebrow" style={{ fontSize: 10 }}>Tips</div>
             <div style={{ marginTop: 8, color: 'var(--text-muted)' }}>Summary updates as you move through steps. Results appear at the end.</div>
+          </div>
+
+          <div style={{ marginTop: 12 }}>
+            {remoteLoading && <div className="kp-mono" style={{ fontSize: 12, color: 'var(--text-muted)' }}>Loading recommendations...</div>}
+            {!remoteLoading && remoteError && <div style={{ fontSize: 13, color: 'red' }}>Error: {remoteError}</div>}
+            {!remoteLoading && !remoteError && remoteMatches && (
+              <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{remoteMatches.length} recommendations from server</div>
+            )}
           </div>
 
           <div style={{ flex: 1 }} />

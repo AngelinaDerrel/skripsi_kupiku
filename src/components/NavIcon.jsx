@@ -1,3 +1,5 @@
+import React from 'react';
+
 export default function NavIcon({ name, active }) {
   const c = active ? 'var(--text)' : 'var(--text-muted)';
   const sw = 1.5;

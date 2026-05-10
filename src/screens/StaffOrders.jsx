@@ -1,3 +1,4 @@
+import React from 'react';
 import StaffLayout from './StaffLayout.jsx';
 import { MENU_ITEMS } from '../data/menuItems.js';
 
