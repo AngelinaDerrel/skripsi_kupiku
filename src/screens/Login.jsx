@@ -1,6 +1,8 @@
 import React from 'react';
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { GoogleLogin } from '@react-oauth/google';
+
 import LogoKupiku from '../assets/kupikuLogo.png';
 
 const DEMO_USERS = [
@@ -32,6 +34,7 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [deniedEmail, setDeniedEmail] = useState('');
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
   const handleLocalLogin = (event) => {
     event.preventDefault();
@@ -275,6 +278,20 @@ export default function Login() {
               <button className="kp-btn kp-btn-ghost kp-btn-sm" onClick={() => doDemoLogin('staff@kupiku.local','staff123')}>Use staff demo</button>
             </div>
 
+            {/* Google sign-in */}
+            <div style={{ marginTop: 16, display: 'flex', justifyContent: 'center' }}>
+              {googleClientId ? (
+                <GoogleLogin
+                  onSuccess={handleGoogleLogin}
+                  onError={() => { setDeniedEmail('Google Account'); setStatus('denied'); }}
+                />
+              ) : (
+                <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>
+                  Google Sign-in not configured. Set `VITE_GOOGLE_CLIENT_ID` in your environment.
+                </div>
+              )}
+            </div>
+
             {/* Denied state */}
             {status === 'denied' && (
               <div style={{
@@ -369,4 +386,62 @@ export default function Login() {
       `}</style>
     </div>
   );
+
+  async function handleGoogleLogin(credentialResponse) {
+    try {
+      setStatus('loading');
+
+      const googleToken = credentialResponse.credential;
+
+      // Kirim token ke backend Laravel
+      const response = await fetch(
+        'http://localhost:8000/api/auth/google',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            token: googleToken,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Google login failed');
+      }
+
+      // Simpan user
+      localStorage.setItem(
+        'kupiku_user',
+        JSON.stringify(data.user)
+      );
+
+      // Simpan token Laravel Sanctum/JWT
+      localStorage.setItem(
+        'kupiku_token',
+        data.token
+      );
+
+      setStatus('idle');
+
+      // Redirect berdasarkan role
+      if (data.user.role === 'admin') {
+        nav('/admin');
+      } else if (data.user.role === 'staff') {
+        nav('/staff/orders');
+      } else {
+        nav('/mood');
+      }
+
+    } catch (err) {
+      console.error('Google login error:', err);
+
+      setDeniedEmail('Google Account');
+      setStatus('denied');
+    }
+  }
+
 }

@@ -1,11 +1,16 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
+import { GoogleOAuthProvider } from '@react-oauth/google';
+
 import App from './App.jsx';
+
 import './styles/tokens.css';
 import './styles/globals.css';
 
-ReactDOM.createRoot(document.getElementById('root')).render(
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+const app = (
   <React.StrictMode>
     <BrowserRouter>
       <App />
@@ -13,13 +18,22 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   </React.StrictMode>
 );
 
-// Debug helpers: surface uncaught errors and unhandled promise rejections
-console.log('Kupiku: mounting app');
+ReactDOM.createRoot(document.getElementById('root')).render(
+  googleClientId ? (
+    <GoogleOAuthProvider clientId={googleClientId}>
+      {app}
+    </GoogleOAuthProvider>
+  ) : app
+);
+
+// Debug helpers
+console.log('Kupiku: mounting app', { googleClientId: googleClientId ? '✓ set' : '✗ missing' });
 
 function showFatalError(message) {
   try {
     const existing = document.getElementById('kupiku-fatal');
     if (existing) existing.remove();
+
     const pre = document.createElement('pre');
     pre.id = 'kupiku-fatal';
     pre.style.position = 'fixed';
@@ -35,6 +49,7 @@ function showFatalError(message) {
     pre.style.maxHeight = '40vh';
     pre.style.overflow = 'auto';
     pre.textContent = String(message);
+
     document.body.appendChild(pre);
   } catch (e) {
     // ignore
@@ -43,10 +58,14 @@ function showFatalError(message) {
 
 window.addEventListener('error', (ev) => {
   console.error('Uncaught error', ev.error || ev.message, ev);
-  showFatalError(ev.error ? ev.error.stack || ev.error.message : ev.message);
+  showFatalError(
+    ev.error ? ev.error.stack || ev.error.message : ev.message
+  );
 });
 
 window.addEventListener('unhandledrejection', (ev) => {
   console.error('Unhandled rejection', ev.reason);
-  showFatalError(ev.reason && ev.reason.stack ? ev.reason.stack : String(ev.reason));
+  showFatalError(
+    ev.reason?.stack ?? String(ev.reason)
+  );
 });

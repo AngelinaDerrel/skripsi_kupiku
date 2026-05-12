@@ -124,3 +124,17 @@ button { font-family: inherit; }
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 4px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
+
+/* Leaflet tweaks */
+.leaflet-container { font: inherit; }
+.kp-pin-label {
+  background: rgba(255,255,255,0.96);
+  color: var(--text);
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  pointer-events: none;
+}

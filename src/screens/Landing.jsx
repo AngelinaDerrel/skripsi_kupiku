@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import LogoKupiku from '../assets/kupikuLogo.png';
+import Map from '../components/Map';
 
 export default function Landing() {
   const nav = useNavigate();
@@ -171,11 +172,8 @@ export default function Landing() {
           <div>
             <div className="kp-eyebrow" style={{ marginBottom: 12 }}>Find us</div>
             <h3 className="kp-display" style={{ fontSize: 28, margin: 0 }}>Where to find Kupiku Coffee</h3>
-            <div className="kp-card" style={{ marginTop: 20, height: 320, borderRadius: 12, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-                <div style={{ width: 260, height: 160, background: 'linear-gradient(180deg, var(--surface), var(--surface-1))', borderRadius: 8, margin: '0 auto 12px', boxShadow: 'inset 0 0 40px rgba(0,0,0,0.12)' }} />
-                <div style={{ fontSize: 13 }}>Map preview (Leaflet) — coming soon</div>
-              </div>
+            <div className="kp-card" style={{ marginTop: 20, height: 320, borderRadius: 12, overflow: 'hidden', padding: 0 }}>
+              <Map endpoint="/api/locations/geojson" height={320} />
             </div>
           </div>
 
