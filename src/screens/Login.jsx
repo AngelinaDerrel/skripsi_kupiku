@@ -7,12 +7,6 @@ import LogoKupiku from '../assets/kupikuLogo.png';
 
 const DEMO_USERS = [
   {
-    email: 'customer@kupiku.local',
-    password: 'customer123',
-    name: 'Kupiku Customer',
-    role: 'customer',
-  },
-  {
     email: 'admin@kupiku.local',
     password: 'admin123',
     name: 'Kupiku Admin',
@@ -31,58 +25,14 @@ export default function Login() {
   const { state } = useLocation();
   const nextPath = state?.next;
   const [status, setStatus] = useState('idle'); // idle | loading | denied
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [deniedEmail, setDeniedEmail] = useState('');
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-
-  const handleLocalLogin = (event) => {
-    event.preventDefault();
-    setStatus('loading');
-    try {
-      const normalizedEmail = String(email || '').trim().toLowerCase();
-      const normalizedPassword = String(password || '').trim();
-      const account = DEMO_USERS.find(
-        (item) => String(item.email || '').trim().toLowerCase() === normalizedEmail && String(item.password || '') === normalizedPassword
-      );
-
-      if (account) {
-        if (nextPath === '/admin' && account.role !== 'admin') {
-          setDeniedEmail(email);
-          setStatus('denied');
-          return;
-        }
-
-        localStorage.setItem('kupiku_user', JSON.stringify({
-          email: account.email,
-          name: account.name,
-          role: account.role,
-        }));
-        setStatus('idle');
-        if (nextPath) {
-          nav(nextPath);
-        } else {
-          if (account.role === 'admin') nav('/admin');
-          else if (account.role === 'staff') nav('/staff/orders');
-          else nav('/mood');
-        }
-      } else {
-        setDeniedEmail(email);
-        setStatus('denied');
-      }
-    } catch (err) {
-      console.error('Local login error:', err);
-      setStatus('idle');
-    }
-  };
 
   function doDemoLogin(demoEmail, demoPassword) {
     setStatus('loading');
     try {
-      const normalizedEmail = String(demoEmail || '').trim().toLowerCase();
-      const normalizedPassword = String(demoPassword || '').trim();
       const account = DEMO_USERS.find(
-        (item) => String(item.email || '').trim().toLowerCase() === normalizedEmail && String(item.password || '') === normalizedPassword
+        (item) => item.email === demoEmail && item.password === demoPassword
       );
       if (!account) {
         setDeniedEmail(demoEmail);
@@ -101,6 +51,46 @@ export default function Login() {
     } catch (err) {
       console.error('Demo login error:', err);
       setStatus('idle');
+    }
+  }
+
+  async function handleGoogleLogin(credentialResponse) {
+    try {
+      setStatus('loading');
+
+      const googleToken = credentialResponse.credential;
+
+      const response = await fetch('http://localhost:8000/api/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: googleToken }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Google login failed');
+      }
+
+      localStorage.setItem('kupiku_user', JSON.stringify(data.user));
+      localStorage.setItem('kupiku_token', data.token);
+
+      setStatus('idle');
+
+      if (nextPath) {
+        nav(nextPath);
+      } else if (data.user.role === 'admin') {
+        nav('/admin');
+      } else if (data.user.role === 'staff') {
+        nav('/staff/orders');
+      } else {
+        nav('/mood');
+      }
+
+    } catch (err) {
+      console.error('Google login error:', err);
+      setDeniedEmail('Google Account');
+      setStatus('denied');
     }
   }
 
@@ -231,66 +221,37 @@ export default function Login() {
               fontSize: 13, lineHeight: 1.6, color: 'var(--text-muted)',
               marginTop: 12, marginBottom: 32
             }}>
-              Demo login lokal untuk melihat flow customer dan admin.
+              Use your Google account to continue.
             </p>
 
-            <form onSubmit={handleLocalLogin} style={{ display: 'grid', gap: 12 }}>
-              <input
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email"
-                autoComplete="username"
-                style={{
-                  width: '100%',
-                  padding: '12px 14px',
-                  borderRadius: 10,
-                  border: '1px solid var(--line-strong)',
-                  background: 'var(--surface)',
-                  color: 'var(--text)',
-                  fontSize: 14,
-                }}
-              />
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password"
-                autoComplete="current-password"
-                style={{
-                  width: '100%',
-                  padding: '12px 14px',
-                  borderRadius: 10,
-                  border: '1px solid var(--line-strong)',
-                  background: 'var(--surface)',
-                  color: 'var(--text)',
-                  fontSize: 14,
-                }}
-              />
-
-              <button className="kp-btn" type="submit" disabled={status === 'loading'} style={{ width: '100%', justifyContent: 'center' }}>
-                {status === 'loading' ? 'Signing in...' : 'Sign in'}
-              </button>
-            </form>
-
-            <div style={{ marginTop: 14, display: 'flex', gap: 8 }}>
-              <button className="kp-btn kp-btn-ghost kp-btn-sm" onClick={() => doDemoLogin('customer@kupiku.local','customer123')}>Use customer demo</button>
-              <button className="kp-btn kp-btn-ghost kp-btn-sm" onClick={() => doDemoLogin('admin@kupiku.local','admin123')}>Use admin demo</button>
-              <button className="kp-btn kp-btn-ghost kp-btn-sm" onClick={() => doDemoLogin('staff@kupiku.local','staff123')}>Use staff demo</button>
-            </div>
-
-            {/* Google sign-in */}
-            <div style={{ marginTop: 16, display: 'flex', justifyContent: 'center' }}>
+            {/* Google sign-in — primary CTA */}
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
               {googleClientId ? (
                 <GoogleLogin
                   onSuccess={handleGoogleLogin}
                   onError={() => { setDeniedEmail('Google Account'); setStatus('denied'); }}
+                  width="348"
+                  text="signin_with"
+                  shape="rectangular"
+                  theme="filled_black"
                 />
               ) : (
                 <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>
-                  Google Sign-in not configured. Set `VITE_GOOGLE_CLIENT_ID` in your environment.
+                  Google Sign-in not configured. Set <span className="kp-mono">VITE_GOOGLE_CLIENT_ID</span> in your .env.
                 </div>
               )}
             </div>
+
+            {/* Loading indicator */}
+            {status === 'loading' && (
+              <div style={{
+                marginTop: 16, textAlign: 'center',
+                fontFamily: 'var(--font-mono)', fontSize: 11,
+                color: 'var(--text-muted)', letterSpacing: '0.08em'
+              }}>
+                Signing in…
+              </div>
+            )}
 
             {/* Denied state */}
             {status === 'denied' && (
@@ -307,11 +268,11 @@ export default function Login() {
                 }}>
                   Login failed
                 </div>
-                <div style={{ fontSize: 13, color: 'var(--text)', marginBottom: 6 }}>
-                  Email atau password tidak cocok untuk akun demo.
+                <div style={{ fontSize: 13, color: 'var(--text)', marginBottom: 4 }}>
+                  Couldn't sign in with {deniedEmail}.
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.55 }}>
-                  Coba salah satu akun ini: <span className="kp-mono">customer@kupiku.local / customer123</span> atau <span className="kp-mono">admin@kupiku.local / admin123</span>.
+                  Make sure you're using a registered Google account, or contact the store.
                 </div>
                 <div
                   onClick={() => setStatus('idle')}
@@ -321,7 +282,7 @@ export default function Login() {
                     letterSpacing: '0.06em', textTransform: 'uppercase',
                     color: 'var(--brown-3)', cursor: 'pointer'
                   }}>
-                  Try another account →
+                  Try again →
                 </div>
               </div>
             )}
@@ -329,19 +290,30 @@ export default function Login() {
             {/* Divider */}
             <div style={{
               display: 'flex', alignItems: 'center', gap: 12,
-              margin: '28px 0 20px',
+              margin: '28px 0 16px',
             }}>
               <div style={{ flex: 1, height: 1, background: 'var(--line)' }} />
               <span className="kp-mono" style={{
                 fontSize: 10, color: 'var(--text-dim)',
                 letterSpacing: '0.08em', textTransform: 'uppercase'
-              }}>or</span>
+              }}>internal</span>
               <div style={{ flex: 1, height: 1, background: 'var(--line)' }} />
+            </div>
+
+            {/* Admin & Staff demo only */}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="kp-btn kp-btn-ghost kp-btn-sm" style={{ flex: 1 }} onClick={() => doDemoLogin('admin@kupiku.local', 'admin123')}>
+                Admin demo
+              </button>
+              <button className="kp-btn kp-btn-ghost kp-btn-sm" style={{ flex: 1 }} onClick={() => doDemoLogin('staff@kupiku.local', 'staff123')}>
+                Staff demo
+              </button>
             </div>
 
             {/* Footer links */}
             <div style={{
-              display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center'
+              display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center',
+              marginTop: 28
             }}>
               <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
                 New to Kupiku?{' '}
@@ -361,8 +333,8 @@ export default function Login() {
               fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text-dim)',
               letterSpacing: '0.08em', textTransform: 'uppercase'
             }}>
-              <span>Local Auth · Demo Mode</span>
-              <span>v1.4.2</span>
+              <span>Google OAuth · Kupiku Auth</span>
+              <span>v1.5.0</span>
             </div>
           </div>
         </div>
@@ -380,68 +352,6 @@ export default function Login() {
         <span>EST · KUPIKU · MMXXIV</span>
         <span>BREWED IN BANDUNG</span>
       </div>
-
-      <style>{`
-        @keyframes kp-spin { to { transform: rotate(360deg); } }
-      `}</style>
     </div>
   );
-
-  async function handleGoogleLogin(credentialResponse) {
-    try {
-      setStatus('loading');
-
-      const googleToken = credentialResponse.credential;
-
-      // Kirim token ke backend Laravel
-      const response = await fetch(
-        'http://localhost:8000/api/auth/google',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            token: googleToken,
-          }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Google login failed');
-      }
-
-      // Simpan user
-      localStorage.setItem(
-        'kupiku_user',
-        JSON.stringify(data.user)
-      );
-
-      // Simpan token Laravel Sanctum/JWT
-      localStorage.setItem(
-        'kupiku_token',
-        data.token
-      );
-
-      setStatus('idle');
-
-      // Redirect berdasarkan role
-      if (data.user.role === 'admin') {
-        nav('/admin');
-      } else if (data.user.role === 'staff') {
-        nav('/staff/orders');
-      } else {
-        nav('/mood');
-      }
-
-    } catch (err) {
-      console.error('Google login error:', err);
-
-      setDeniedEmail('Google Account');
-      setStatus('denied');
-    }
-  }
-
 }

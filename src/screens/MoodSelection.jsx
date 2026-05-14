@@ -7,11 +7,25 @@ import api from '../lib/api';
 
 export default function MoodSelection() {
   const nav = useNavigate();
+
+  // Proteksi halaman mood
+  useEffect(() => {
+    const user = localStorage.getItem('kupiku_user');
+
+    if (!user) {
+      nav('/login', {
+        state: { next: '/mood' },
+      });
+    }
+  }, []);
+
   const [moodsList, setMoodsList] = useState(MOODS);
   const [active, setActive] = useState(MOODS[0]?.id || null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const current = moodsList.find((m) => m.id === active) || MOODS[0];
+
+  const current =
+    moodsList.find((m) => m.id === active) || MOODS[0];
 
   useEffect(() => {
     let cancelled = false;

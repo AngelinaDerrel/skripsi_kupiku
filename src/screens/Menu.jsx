@@ -40,9 +40,9 @@ export default function Menu() {
           <span>Locations</span>
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Sign in</span>
-          <button className="kp-btn kp-btn-sm">
-            Cart <span className="kp-mono" style={{ fontSize: 11, opacity: 0.8 }}>· 2</span>
+          <span style={{ fontSize: 13, color: 'var(--text-muted)', cursor: 'pointer' }} onClick={() => nav('/login')}>Sign in</span>
+          <button className="kp-btn kp-btn-sm" onClick={() => nav('/login')}>
+            Order
           </button>
         </div>
       </nav>

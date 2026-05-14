@@ -36,7 +36,7 @@ export default function Landing() {
         <div style={{ display: 'flex', gap: 36, fontSize: 13, color: 'var(--text-muted)' }}>
           <span style={{ color: 'var(--text)', cursor: 'pointer' }} onClick={() => nav('/')}>Discover</span>
           <span style={{ cursor: 'pointer' }} onClick={() => nav('/menu')}>Menu</span>
-          <span style={{ cursor: 'pointer' }} onClick={() => nav('/mood')}>Mood</span>
+          <span style={{ cursor: 'pointer' }} onClick={() => nav('/login', { state: { next: '/mood' } })}>Mood</span>
           <span style={{ cursor: 'pointer' }} onClick={() => {
             if (loc.pathname === '/') {
               const el = document.getElementById('maps');
@@ -73,10 +73,12 @@ export default function Landing() {
           </p>
 
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            <button className="kp-btn" onClick={() => nav('/mood')}>
-              Discover your mood
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, opacity: 0.8 }}>→</span>
-            </button>
+            <button className="kp-btn" onClick={() => nav('/login', { state: { next: '/mood' } })}>
+                Discover your mood
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, opacity: 0.8 }}>
+                  →
+                </span>
+              </button>
             <button className="kp-btn kp-btn-ghost" onClick={() => nav('/menu')}>Browse the menu</button>
           </div>
 {/* 
