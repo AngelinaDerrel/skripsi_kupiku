@@ -1,19 +1,99 @@
 import React from 'react';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MENU_CATEGORIES, MENU_ITEMS } from '../data/menuItems.js';
+import api from '../lib/api.js';
 import LogoKupiku from '../assets/kupikuLogo.png';
 
 export default function Menu() {
   const nav = useNavigate();
   const [filter, setFilter] = useState('all');
   const [hovered, setHovered] = useState(null);
-  // Defensive: ensure imported data exists to avoid runtime crashes
-  const categories = Array.isArray(MENU_CATEGORIES) ? MENU_CATEGORIES : [];
-  const allItems = Array.isArray(MENU_ITEMS) ? MENU_ITEMS : [];
-  const items = filter === 'all' ? allItems : allItems.filter((i) => i.cat === filter);
-  const featured = allItems.find((i) => i.featured) || { name: '', desc: '', notes: [], price: '' };
-  // (no debug logging)
+  const [menuItems, setMenuItems] = useState([]);
+  const [categories, setCategories] = useState([{ id: 'all', label: 'All' }]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const normalizeCategoryId = (value) =>
+    String(value || '')
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, '-');
+
+  const pickString = (source, keys = []) => {
+    if (typeof source === 'string') return source;
+    if (!source || typeof source !== 'object') return '';
+    for (const key of keys) {
+      const val = source[key];
+      if (typeof val === 'string' && val.trim()) return val;
+    }
+    return '';
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadMenu() {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await api.get('menu');
+        if (cancelled) return;
+        const arr = Array.isArray(data) ? data : (data?.data ?? []);
+        const mapped = arr.map((item, idx) => {
+          const categoryLabel =
+            pickString(item.kategori, ['kategori', 'nama_kategori', 'namaKategori', 'nama', 'category', 'label']) ||
+            pickString(item, ['kategori', 'category', 'cat', 'jenis']);
+          const recipeList = Array.isArray(item.reseps)
+            ? item.reseps
+              .map((resep) => resep?.bahanbaku?.nama_bahan || resep?.bahanbaku?.nama || resep?.nama_bahan)
+              .filter(Boolean)
+            : [];
+          return {
+            id: item.id_menu ?? item.id ?? item.menu_id ?? idx,
+            name: pickString(item, ['nama_menu', 'namaMenu', 'menu', 'name', 'nama', 'menu_name', 'menuName', 'judul', 'title']),
+            price: item.harga ?? item.price ?? '',
+            recipe: recipeList.length ? recipeList : (item.resep || item.recipe || item.deskripsi || item.desc || ''),
+            categoryLabel,
+            categoryId: normalizeCategoryId(categoryLabel),
+          };
+        });
+
+        const uniqueLabels = [...new Set(mapped.map((m) => String(m.categoryLabel || '').trim()).filter(Boolean))];
+        const nextCategories = [
+          { id: 'all', label: 'All' },
+          ...uniqueLabels.map((label) => ({ id: normalizeCategoryId(label), label })),
+        ];
+
+        setMenuItems(mapped);
+        setCategories(nextCategories);
+      } catch (err) {
+        if (!cancelled) setError(err?.message || 'Failed to load menu');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    loadMenu();
+    return () => { cancelled = true; };
+  }, []);
+
+  const items = useMemo(() => {
+    if (filter === 'all') return menuItems;
+    return menuItems.filter((item) => item.categoryId === filter);
+  }, [filter, menuItems]);
+
+  const formatPrice = (value) => {
+    const numeric = Number(value);
+    if (Number.isFinite(numeric)) return numeric.toLocaleString('id-ID');
+    return value || '-';
+  };
+
+  const getRecipeItems = (value) => {
+    if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean);
+    return String(value || '')
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+  };
 
   return (
     <div className="kp" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
@@ -69,9 +149,9 @@ export default function Menu() {
             color: 'var(--text-dim)', fontFamily: 'var(--font-mono)',
             textTransform: 'uppercase', letterSpacing: '0.1em'
           }}>
-            <span>{items.length} drinks</span>
+            <span>{items.length} menu</span>
             <span>·</span>
-            <span>updated weekly</span>
+            <span>{loading ? 'loading' : 'updated weekly'}</span>
           </div>
         </div>
       </div>
@@ -131,12 +211,21 @@ export default function Menu() {
         })}
         <div style={{ flex: 1 }} />
         <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-          Sort: <span style={{ color: 'var(--text)' }}>Featured</span>
+          {loading ? 'Loading menu...' : (error ? 'Gagal memuat menu' : 'Ready')}
         </span>
       </div>
 
       {/* Grid */}
       <div style={{ padding: '0 56px 56px' }}>
+        {error && (
+          <div style={{
+            marginBottom: 18, padding: '10px 14px',
+            border: '1px solid var(--line)', borderRadius: 10,
+            color: 'var(--text-muted)', background: 'var(--surface)'
+          }}>
+            {error}
+          </div>
+        )}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
           {items.map((d) => {
             const isHover = hovered === d.id;
@@ -160,35 +249,32 @@ export default function Menu() {
                   transition: 'filter 220ms ease'
                 }} />
                 <div style={{ padding: 20 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                    <span className="kp-chip">{d.mood.toUpperCase()}</span>
-                    <span className="kp-mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{d.id}</span>
-                  </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
                     <h4 style={{ fontSize: 18, margin: 0, fontWeight: 500, letterSpacing: '-0.01em' }}>{d.name}</h4>
-                    <span className="kp-mono" style={{ fontSize: 13, color: 'var(--text)', whiteSpace: 'nowrap' }}>IDR {d.price}k</span>
+                    <span className="kp-mono" style={{ fontSize: 13, color: 'var(--text)', whiteSpace: 'nowrap' }}>Rp {formatPrice(d.price)}</span>
                   </div>
-                  <p style={{ color: 'var(--text-muted)', fontSize: 12.5, lineHeight: 1.55, marginTop: 6 }}>{d.desc}</p>
-                  <div style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--line)'
-                  }}>
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      {d.notes.slice(0, 3).map((n) => (
-                        <span key={n} className="kp-mono" style={{
-                          fontSize: 10, color: 'var(--text-muted)',
-                          textTransform: 'uppercase', letterSpacing: '0.05em'
-                        }}>· {n}</span>
-                      ))}
+                  {getRecipeItems(d.recipe).length > 0 && (
+                    <div style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--line)'
+                    }}>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {getRecipeItems(d.recipe).slice(0, 4).map((item) => (
+                          <span key={item} className="kp-mono" style={{
+                            fontSize: 10, color: 'var(--text-muted)',
+                            textTransform: 'uppercase', letterSpacing: '0.05em'
+                          }}>· {item}</span>
+                        ))}
+                      </div>
+                      <span style={{
+                        width: 26, height: 26, borderRadius: '50%',
+                        background: isHover ? 'var(--brown)' : 'var(--surface-2)',
+                        border: '1px solid var(--line-strong)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 14, transition: 'background 200ms ease'
+                      }}>+</span>
                     </div>
-                    <span style={{
-                      width: 26, height: 26, borderRadius: '50%',
-                      background: isHover ? 'var(--brown)' : 'var(--surface-2)',
-                      border: '1px solid var(--line-strong)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 14, transition: 'background 200ms ease'
-                    }}>+</span>
-                  </div>
+                  )}
                 </div>
               </div>
             );
