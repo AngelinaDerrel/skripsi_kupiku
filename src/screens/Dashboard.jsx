@@ -1,12 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import NavIcon from '../components/NavIcon.jsx';
-import { MENU_ITEMS, MENU_CATEGORIES } from '../data/menuItems.js';
+import api from '../lib/api.js';
 
 const NAV = [
-  { id: 'overview', label: 'Overview', icon: 'home' },
   { id: 'menu', label: 'Menu', icon: 'cup', active: true },
   { id: 'stock', label: 'Stock', icon: 'box' },
   { id: 'staff', label: 'Staff', icon: 'people' },
@@ -14,22 +13,13 @@ const NAV = [
   { id: 'moods', label: 'Mood insights', icon: 'pulse' },
 ];
 const NAV_BOTTOM = [
-  { id: 'settings', label: 'Settings', icon: 'gear' },
-  { id: 'help', label: 'Support', icon: 'help' },
   { id: 'logout', label: 'Logout', icon: 'logout' },
 ];
 
-const stockDot = (s) => {
-  if (s === 'High') return 'var(--good)';
-  if (s === 'Medium') return 'var(--warn)';
-  if (s === 'Low') return 'var(--warn)';
-  return 'var(--text-dim)';
-};
-
-function CategoryFilter({ value, onChange }) {
+function CategoryFilter({ value, onChange, categories }) {
   return (
     <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-      {MENU_CATEGORIES.map((c) => {
+      {categories.map((c) => {
         const active = c.id === value;
         return (
           <button key={c.id} onClick={() => onChange(c.id)} style={{
@@ -44,11 +34,180 @@ function CategoryFilter({ value, onChange }) {
   );
 }
 
+function Dropdown({ value, onChange, options, placeholder, style, searchable = false, searchPlaceholder = 'Cari...' }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const containerRef = useRef(null);
+  const selected = options.find((opt) => opt.value === value);
+  const visibleOptions = searchable
+    ? options.filter((opt) => opt.label.toLowerCase().includes(query.trim().toLowerCase()))
+    : options;
+
+  useEffect(() => {
+    function handleOutside(e) {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, []);
+
+  useEffect(() => {
+    if (!open) setQuery('');
+  }, [open]);
+
+  return (
+    <div ref={containerRef} style={{ position: 'relative', ...style }}>
+      <button
+        type="button"
+        onClick={() => setOpen((s) => !s)}
+        style={{
+          width: '100%',
+          padding: '10px 12px',
+          borderRadius: 10,
+          border: '1px solid var(--line-strong)',
+          background: 'var(--surface)',
+          color: selected ? 'var(--text)' : 'var(--text-muted)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 10,
+          cursor: 'pointer',
+        }}
+      >
+        <span style={{ textAlign: 'left' }}>{selected ? selected.label : placeholder}</span>
+        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{open ? '▲' : '▼'}</span>
+      </button>
+      {open && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            right: 0,
+            marginTop: 6,
+            borderRadius: 10,
+            border: '1px solid var(--line-strong)',
+            background: 'var(--surface)',
+            maxHeight: 220,
+            overflowY: 'auto',
+            zIndex: 20,
+            boxShadow: '0 16px 30px rgba(0,0,0,0.28)',
+          }}
+        >
+          {searchable && (
+            <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--line)' }}>
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={searchPlaceholder}
+                style={{
+                  width: '100%',
+                  padding: '8px 10px',
+                  borderRadius: 8,
+                  border: '1px solid var(--line-strong)',
+                  background: 'var(--surface)',
+                  color: 'var(--text)',
+                }}
+              />
+            </div>
+          )}
+          {visibleOptions.length === 0 ? (
+            <div style={{ padding: '10px 12px', color: 'var(--text-muted)', fontSize: 12 }}>
+              Tidak ada pilihan
+            </div>
+          ) : (
+            visibleOptions.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                  onChange(opt.value);
+                  setOpen(false);
+                }}
+                style={{
+                  width: '100%',
+                  textAlign: 'left',
+                  padding: '10px 12px',
+                  border: 'none',
+                  background: 'transparent',
+                  color: 'var(--text)',
+                  cursor: 'pointer',
+                }}
+              >
+                {opt.label}
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const nav = useNavigate();
   const loc = useLocation();
   const [category, setCategory] = useState('all');
   const [showAll, setShowAll] = useState(false);
+  const [menuItems, setMenuItems] = useState([]);
+  const [categories, setCategories] = useState([{ id: 'all', label: 'All' }]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isNewDrinkOpen, setIsNewDrinkOpen] = useState(false);
+  const [newDrinkName, setNewDrinkName] = useState('');
+  const [newDrinkPrice, setNewDrinkPrice] = useState('');
+  const [newDrinkCategoryId, setNewDrinkCategoryId] = useState('');
+  const [newDrinkIngredients, setNewDrinkIngredients] = useState([
+    { stockId: '', amount: '' },
+  ]);
+  const [bahanList, setBahanList] = useState([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editMenuId, setEditMenuId] = useState('');
+  const [editMenuName, setEditMenuName] = useState('');
+  const [editIngredients, setEditIngredients] = useState([{ stockId: '', amount: '' }]);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState('');
+  const [successToast, setSuccessToast] = useState({ visible: false, message: '' });
+
+  const normalizeCategoryId = (value) =>
+    String(value || '')
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, '-');
+
+  const pickString = (source, keys = []) => {
+    if (typeof source === 'string') return source;
+    if (!source || typeof source !== 'object') return '';
+    for (const key of keys) {
+      const val = source[key];
+      if (typeof val === 'string' && val.trim()) return val;
+    }
+    return '';
+  };
+
+  const mapMenuItems = (arr) =>
+    arr.map((item, idx) => {
+      const reseps = Array.isArray(item.reseps) ? item.reseps : (Array.isArray(item.resep) ? item.resep : []);
+      const categoryLabel =
+        pickString(item.kategori, ['kategori', 'nama_kategori', 'namaKategori', 'nama', 'category', 'label']) ||
+        pickString(item, ['kategori', 'category', 'cat', 'jenis']);
+      return {
+        id: item.id_menu ?? item.id ?? item.menu_id ?? idx,
+        name: pickString(item, ['nama_menu', 'namaMenu', 'menu', 'name', 'nama', 'menu_name', 'menuName', 'judul', 'title']),
+        price: item.harga ?? item.price ?? '',
+        categoryLabel,
+        categoryId: String(item.id_kategori ?? item.kategori?.id_kategori ?? normalizeCategoryId(categoryLabel)),
+        ingredients: reseps.map((r) => ({
+          stockId: String(r.id_bahan ?? r.bahanbaku?.id_bahan ?? ''),
+          amount: r.jumlah ?? '',
+        })).filter((r) => r.stockId),
+      };
+    });
 
   useEffect(() => {
     // auto-scroll to maps when URL contains #maps
@@ -58,12 +217,267 @@ export default function Dashboard() {
     }
   }, [loc.hash]);
 
-  const filtered = useMemo(() => {
-    if (category === 'all') return MENU_ITEMS;
-    return MENU_ITEMS.filter((m) => m.cat === category);
-  }, [category]);
+  useEffect(() => {
+    let cancelled = false;
+    async function loadMenu() {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await api.get('menu');
+        if (cancelled) return;
+        const arr = Array.isArray(data) ? data : (data?.data ?? []);
+        const mapped = mapMenuItems(arr);
 
-  const displayed = filtered.slice(0, showAll ? filtered.length : 10);
+        setMenuItems(mapped);
+        if (categories.length <= 1) {
+          const uniqueLabels = [...new Set(mapped.map((m) => String(m.categoryLabel || '').trim()).filter(Boolean))];
+          const nextCategories = [
+            { id: 'all', label: 'All' },
+            ...uniqueLabels.map((label) => ({ id: normalizeCategoryId(label), label })),
+          ];
+          setCategories(nextCategories);
+        }
+      } catch (err) {
+        if (!cancelled) setError(err?.message || 'Failed to load menu');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    loadMenu();
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    if (!successToast.visible) return undefined;
+    const timer = setTimeout(() => setSuccessToast({ visible: false, message: '' }), 2200);
+    return () => clearTimeout(timer);
+  }, [successToast.visible]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadBahanBaku() {
+      try {
+        const data = await api.get('bahanbaku');
+        if (cancelled) return;
+        const arr = Array.isArray(data) ? data : (data?.data ?? []);
+        const mapped = arr.map((item) => ({
+          id: String(item.id_bahan ?? item.id ?? ''),
+          name: pickString(item, ['nama_bahan', 'namaBahan', 'nama', 'label']),
+          unit: pickString(item, ['satuan_dasar', 'satuanDasar', 'unit']),
+        })).filter((item) => item.id && item.name);
+        setBahanList(mapped);
+      } catch (err) {
+        setBahanList([]);
+      }
+    }
+
+    loadBahanBaku();
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadCategories() {
+      try {
+        const data = await api.get('kategori');
+        if (cancelled) return;
+        const arr = Array.isArray(data) ? data : (data?.data ?? []);
+        const nextCategories = [
+          { id: 'all', label: 'All' },
+          ...arr.map((item) => ({
+            id: String(item.id_kategori ?? item.id ?? item.kategori_id ?? ''),
+            label: pickString(item, ['nama_kategori', 'namaKategori', 'nama', 'label', 'kategori'])
+          })).filter((c) => c.id && c.label),
+        ];
+        if (nextCategories.length > 1) setCategories(nextCategories);
+      } catch (err) {
+        // fallback to categories derived from menu
+      }
+    }
+
+    loadCategories();
+    return () => { cancelled = true; };
+  }, []);
+
+  const filtered = useMemo(() => {
+    const keyword = String(searchTerm || '').trim().toLowerCase();
+    const bySearch = keyword
+      ? menuItems.filter((m) =>
+          String(m.name || '').toLowerCase().includes(keyword) ||
+          String(m.categoryLabel || '').toLowerCase().includes(keyword)
+        )
+      : menuItems;
+
+    if (category === 'all') return bySearch;
+    return bySearch.filter((m) => m.categoryId === category);
+  }, [category, menuItems, searchTerm]);
+
+  const displayed = searchTerm ? filtered : filtered.slice(0, showAll ? filtered.length : 10);
+
+  const availableCategories = categories.filter((c) => c.id !== 'all');
+  const categoryOptions = availableCategories.map((c) => ({ value: c.id, label: c.label }));
+  const stockOptions = bahanList.map((item) => ({ value: item.id, label: item.name }));
+  const usedStockIds = newDrinkIngredients.map((row) => row.stockId).filter(Boolean);
+  const usedEditStockIds = editIngredients.map((row) => row.stockId).filter(Boolean);
+
+  function openNewDrinkModal() {
+    setIsNewDrinkOpen(true);
+    setNewDrinkName('');
+    setNewDrinkPrice('');
+    setNewDrinkCategoryId('');
+    setNewDrinkIngredients([{ stockId: '', amount: '' }]);
+    setSubmitError('');
+  }
+
+  function closeNewDrinkModal() {
+    setIsNewDrinkOpen(false);
+    setSubmitError('');
+  }
+
+  function updateIngredient(index, field, value) {
+    setNewDrinkIngredients((current) =>
+      current.map((row, i) => (i === index ? { ...row, [field]: value } : row))
+    );
+  }
+
+  function addIngredientRow() {
+    setNewDrinkIngredients((current) => [...current, { stockId: '', amount: '' }]);
+  }
+
+  function removeIngredientRow(index) {
+    setNewDrinkIngredients((current) => current.filter((_, i) => i !== index));
+  }
+
+  function openEditModal(item) {
+    setIsEditOpen(true);
+    setEditMenuId(String(item.id));
+    setEditMenuName(item.name || '');
+    setEditIngredients(item.ingredients?.length ? item.ingredients : [{ stockId: '', amount: '' }]);
+    setEditError('');
+  }
+
+  function closeEditModal() {
+    setIsEditOpen(false);
+    setEditMenuId('');
+    setEditMenuName('');
+    setEditIngredients([{ stockId: '', amount: '' }]);
+    setEditError('');
+  }
+
+  function updateEditIngredient(index, field, value) {
+    setEditIngredients((current) =>
+      current.map((row, i) => (i === index ? { ...row, [field]: value } : row))
+    );
+  }
+
+  function addEditIngredientRow() {
+    setEditIngredients((current) => [...current, { stockId: '', amount: '' }]);
+  }
+
+  function removeEditIngredientRow(index) {
+    setEditIngredients((current) => current.filter((_, i) => i !== index));
+  }
+
+  async function handleCreateMenu(e) {
+    e.preventDefault();
+    if (isSaving) return;
+    setSubmitError('');
+    const trimmedName = newDrinkName.trim();
+    if (!trimmedName) {
+      alert('Nama menu wajib diisi.');
+      return;
+    }
+    if (!newDrinkCategoryId) {
+      alert('Kategori wajib dipilih.');
+      return;
+    }
+
+    const parsedPrice = Number(String(newDrinkPrice).replace(/[^0-9.]/g, ''));
+    if (!parsedPrice) {
+      alert('Harga wajib diisi.');
+      return;
+    }
+
+    const bahanPayload = newDrinkIngredients
+      .filter((row) => row.stockId && row.amount)
+      .map((row) => {
+        return {
+          id_bahan: row.stockId,
+          jumlah: Number(String(row.amount).replace(/[^0-9.]/g, '')),
+        };
+      })
+      .filter((row) => row.id_bahan && row.jumlah);
+
+    try {
+      setIsSaving(true);
+      const payload = {
+        nama_menu: trimmedName,
+        harga: parsedPrice,
+        id_kategori: newDrinkCategoryId ? Number(newDrinkCategoryId) : null,
+        bahan: bahanPayload,
+      };
+      const created = await api.post('menu', payload);
+      const mapped = mapMenuItems([created])[0];
+      setMenuItems((current) => [mapped, ...current]);
+      setSuccessToast({ visible: true, message: 'Menu baru berhasil ditambahkan.' });
+      closeNewDrinkModal();
+    } catch (err) {
+      const message = (err && err.message) || 'Gagal menambahkan menu.';
+      setSubmitError(message);
+      alert(message);
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function handleUpdateMenu(e) {
+    e.preventDefault();
+    if (editSaving) return;
+    setEditError('');
+    const trimmedName = editMenuName.trim();
+    if (!trimmedName) {
+      alert('Nama menu wajib diisi.');
+      return;
+    }
+
+    const bahanPayload = editIngredients
+      .filter((row) => row.stockId && row.amount)
+      .map((row) => ({
+        id_bahan: row.stockId,
+        jumlah: Number(String(row.amount).replace(/[^0-9.]/g, '')),
+      }))
+      .filter((row) => row.id_bahan && row.jumlah);
+
+    try {
+      setEditSaving(true);
+      const payload = {
+        nama_menu: trimmedName,
+        bahan: bahanPayload,
+      };
+      const updated = await api.put(`menu/${editMenuId}`, payload);
+      const mapped = mapMenuItems([updated])[0];
+      setMenuItems((current) => current.map((item) => (String(item.id) === String(editMenuId) ? mapped : item)));
+      setSuccessToast({ visible: true, message: 'Menu berhasil diperbarui.' });
+      closeEditModal();
+    } catch (err) {
+      const message = (err && err.message) || 'Gagal memperbarui menu.';
+      setEditError(message);
+      alert(message);
+    } finally {
+      setEditSaving(false);
+    }
+  }
+
+  async function handleDelete(itemId) {
+    if (!confirm('Hapus menu ini?')) return;
+    try {
+      await api.del(`menu/${itemId}`);
+      setMenuItems((current) => current.filter((item) => item.id !== itemId));
+    } catch (err) {
+      alert((err && err.message) || 'Failed to delete menu');
+    }
+  }
 
   return (
     <div className="kp" style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
@@ -156,11 +570,24 @@ export default function Dashboard() {
                 <circle cx="6" cy="6" r="4" stroke="var(--text-muted)" strokeWidth="1.4" />
                 <path d="M9 9l3 3" stroke="var(--text-muted)" strokeWidth="1.4" strokeLinecap="round" />
               </svg>
-              <span style={{ fontSize: 13, color: 'var(--text-muted)', flex: 1 }}>Search here...</span>
+              <input
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search menu..."
+                style={{
+                  fontSize: 13,
+                  color: 'var(--text)',
+                  flex: 1,
+                  background: 'transparent',
+                  border: 'none',
+                  outline: 'none',
+                  fontFamily: 'var(--font-sans)'
+                }}
+              />
               <span className="kp-mono" style={{ fontSize: 10, color: 'var(--text-dim)', border: '1px solid var(--line-strong)', padding: '1px 5px', borderRadius: 4 }}>⌘K</span>
             </div>
             {/* <button className="kp-btn kp-btn-sm kp-btn-ghost">Export CSV</button> */}
-            <button className="kp-btn kp-btn-sm">+ New drink</button>
+            <button className="kp-btn kp-btn-sm" onClick={openNewDrinkModal}>+ New drink</button>
             <div style={{
               width: 32, height: 32, borderRadius: '50%',
               background: 'linear-gradient(135deg, #6B4F3A, #2B2010)',
@@ -171,81 +598,65 @@ export default function Dashboard() {
         </div>
 
         <div style={{ flex: 1, padding: '24px 32px', overflow: 'auto' }}>
-          {/* <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
-            {[
-              { l: 'ACTIVE DRINKS', v: '24', d: '+2 this week', tone: 'good' },
-              { l: 'ORDERS TODAY', v: '186', d: '+12% vs yest.', tone: 'good' },
-              { l: 'LOW STOCK', v: '3', d: 'needs attention', tone: 'warn' },
-              { l: 'TOP MOOD', v: 'Calm', d: '34% of orders', tone: 'neutral' },
-            ].map((k) => (
-              <div key={k.l} className="kp-card" style={{ padding: 18 }}>
-                <div className="kp-eyebrow" style={{ fontSize: 10 }}>{k.l}</div>
-                <div className="kp-display" style={{ fontSize: 28, marginTop: 12, lineHeight: 1 }}>{k.v}</div>
-                <div style={{
-                  fontSize: 11, marginTop: 10,
-                  color: k.tone === 'good' ? 'var(--good)' : k.tone === 'warn' ? 'var(--warn)' : 'var(--text-muted)'
-                }}>{k.d}</div>
-              </div>
-            ))}
-          </div> */}
-
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
             <span className="kp-eyebrow" style={{ fontSize: 10, marginRight: 4 }}>FILTER</span>
-            <CategoryFilter value={category} onChange={setCategory} />
+            <CategoryFilter value={category} onChange={setCategory} categories={categories} />
             <div style={{ flex: 1 }} />
-            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{MENU_ITEMS.length} drinks · sorted by menu order</span>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+              {loading ? 'Loading menu...' : (error ? 'Gagal memuat menu' : `${menuItems.length} menu`)}
+            </span>
           </div>
 
           <div className="kp-card" style={{ overflow: 'hidden' }}>
             <div style={{
               display: 'grid',
-              gridTemplateColumns: '90px 1.4fr 0.8fr 0.9fr 0.7fr 0.9fr 0.8fr 0.7fr 50px',
+              gridTemplateColumns: '110px 1.6fr 1fr 0.8fr 180px',
               padding: '14px 18px', borderBottom: '1px solid var(--line)',
               fontSize: 11, fontFamily: 'var(--font-mono)',
               textTransform: 'uppercase', letterSpacing: '0.08em',
               color: 'var(--text-muted)', background: 'rgba(255,255,255,0.015)'
             }}>
-              <span>SKU</span><span>Drink</span><span>Category</span><span>Mood tag</span>
-              <span>Price</span><span>Stock</span><span>Status</span>
-              <span style={{ textAlign: 'right' }}>Orders</span><span></span>
+              <span>ID</span><span>Drink</span><span>Category</span><span>Price</span><span>Action</span>
             </div>
 
+            {!loading && !error && displayed.length === 0 && (
+              <div style={{ padding: 18, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+                Data Tidak Ditemukan
+              </div>
+            )}
+
             {displayed.map((item, i) => {
-              const catLabel = MENU_CATEGORIES.find((c) => c.id === item.cat)?.label || item.cat;
-              const priceLabel = typeof item.price === 'number' ? `${item.price}k` : item.price;
-              const stock = item.stock || 'High';
-              const status = item.status || 'Active';
-              const orders = item.orders || 0;
+              const priceLabel = typeof item.price === 'number' ? item.price.toLocaleString('id-ID') : item.price;
               return (
                 <div key={item.id} style={{
                   display: 'grid',
-                  gridTemplateColumns: '90px 1.4fr 0.8fr 0.9fr 0.7fr 0.9fr 0.8fr 0.7fr 50px',
+                  gridTemplateColumns: '110px 1.6fr 1fr 0.8fr 180px',
                   padding: '14px 18px',
                   borderBottom: i < displayed.length - 1 ? '1px solid var(--line)' : 'none',
                   fontSize: 13, alignItems: 'center'
                 }}>
                   <span className="kp-mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{item.id}</span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{
-                      width: 28, height: 28, borderRadius: 6,
-                      background: 'linear-gradient(135deg, rgba(107,79,58,0.4), rgba(20,14,9,0.8))',
-                      border: '1px solid var(--line)'
-                    }} />
-                    <span style={{ fontWeight: 500 }}>{item.name}</span>
+                  <span style={{ fontWeight: 500 }}>{item.name}</span>
+                  <span style={{ color: 'var(--text-muted)' }}>{item.categoryLabel || '-'}</span>
+                  <span className="kp-mono" style={{ fontSize: 12 }}>Rp {priceLabel}</span>
+                  <span>
+                    <div style={{ display: 'inline-flex', gap: 6 }}>
+                      <button
+                        className="kp-btn kp-btn-ghost"
+                        style={{ padding: '4px 10px', fontSize: 12 }}
+                        onClick={() => openEditModal(item)}
+                      >
+                        Update
+                      </button>
+                      <button
+                        className="kp-btn kp-btn-danger"
+                        style={{ padding: '4px 10px', fontSize: 12 }}
+                        onClick={() => handleDelete(item.id)}
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </span>
-                  <span style={{ color: 'var(--text-muted)' }}>{catLabel}</span>
-                  <span><span className="kp-chip" style={{ fontSize: 10, padding: '3px 8px' }}>{(item.mood || '').toUpperCase()}</span></span>
-                  <span className="kp-mono" style={{ fontSize: 12 }}>IDR {priceLabel}</span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: stockDot(stock) }} />
-                    <span style={{ color: stock === 'Out' ? 'var(--text-dim)' : 'var(--text)' }}>{stock}</span>
-                  </span>
-                  <span style={{
-                    fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.04em', textTransform: 'uppercase',
-                    color: status === 'Active' ? 'var(--good)' : status === 'Draft' ? 'var(--text-muted)' : 'var(--warn)'
-                  }}>● {status}</span>
-                  <span className="kp-mono" style={{ fontSize: 12, textAlign: 'right' }}>{orders}</span>
-                  <span style={{ textAlign: 'right', color: 'var(--text-muted)', cursor: 'pointer' }}>···</span>
                 </div>
               );
             })}
@@ -256,81 +667,325 @@ export default function Dashboard() {
               </div>
             )}
           </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginTop: 22 }}>
-            <div className="kp-card" style={{ padding: 18 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                <div>
-                  <div className="kp-eyebrow" style={{ fontSize: 10 }}>Mood mix · last 7 days</div>
-                  <div style={{ fontSize: 14, marginTop: 6, color: 'var(--text-muted)' }}>What customers asked for</div>
-                </div>
-                <span className="kp-mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>1,284 orders</span>
-              </div>
-              <div style={{ display: 'flex', height: 10, borderRadius: 4, overflow: 'hidden', marginBottom: 14 }}>
-                {[
-                  { l: 'Calm', v: 34, c: '#A8835F' },
-                  { l: 'Happy', v: 22, c: '#8A6647' },
-                  { l: 'Stressed', v: 18, c: '#6B4F3A' },
-                  { l: 'Neutral', v: 14, c: '#4A3527' },
-                  { l: 'Sad', v: 8, c: '#383838' },
-                  { l: 'Angry', v: 4, c: '#2B2B2B' },
-                ].map((s) => (
-                  <div key={s.l} style={{ flex: s.v, background: s.c }} />
-                ))}
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, fontSize: 12 }}>
-                {[
-                  { l: 'Calm', v: '34%' }, { l: 'Happy', v: '22%' }, { l: 'Stressed', v: '18%' },
-                  { l: 'Neutral', v: '14%' }, { l: 'Sad', v: '8%' }, { l: 'Angry', v: '4%' },
-                ].map((s) => (
-                  <div key={s.l} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--line)', padding: '6px 0' }}>
-                    <span style={{ color: 'var(--text-muted)' }}>{s.l}</span>
-                    <span className="kp-mono">{s.v}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="kp-card" style={{ padding: 18 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                <div>
-                  <div className="kp-eyebrow" style={{ fontSize: 10 }}>Restock alerts</div>
-                  <div style={{ fontSize: 14, marginTop: 6, color: 'var(--text-muted)' }}>3 items need a top-up</div>
-                </div>
-                <button className="kp-btn kp-btn-sm kp-btn-ghost">Open stock</button>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {[
-                  { n: 'Aceh Gayo beans', s: '1.2 / 8 kg', urgency: 'high' },
-                  { n: 'Oat milk (Oatside)', s: '6 / 24 ctn', urgency: 'med' },
-                  { n: 'Lavender syrup', s: '0 / 6 btl', urgency: 'high' },
-                ].map((x) => (
-                  <div key={x.n} style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    padding: '10px 12px', borderRadius: 8,
-                    background: 'rgba(255,255,255,0.02)', border: '1px solid var(--line)'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <span style={{
-                        width: 6, height: 6, borderRadius: '50%',
-                        background: x.urgency === 'high' ? 'var(--warn)' : 'var(--text-muted)'
-                      }} />
-                      <span style={{ fontSize: 13 }}>{x.n}</span>
-                    </div>
-                    <span className="kp-mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{x.s}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-          {/* Maps section */}
-          <div id="maps" className="kp-card" style={{ marginTop: 22, padding: 18 }}>
-            <div className="kp-eyebrow" style={{ fontSize: 10 }}>Maps</div>
-            <div style={{ marginTop: 8, color: 'var(--text-muted)' }}>Map preview and store locations (coming soon).</div>
-            <div style={{ height: 220, marginTop: 12, borderRadius: 8, background: 'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))', border: '1px solid var(--line)' }} />
-          </div>
         </div>
       </main>
+
+      <div
+        style={{
+          position: 'fixed',
+          top: 18,
+          right: 18,
+          zIndex: 60,
+          pointerEvents: 'none',
+          opacity: successToast.visible ? 1 : 0,
+          transform: successToast.visible ? 'translateY(0)' : 'translateY(-10px)',
+          transition: 'opacity 180ms ease, transform 180ms ease',
+        }}
+      >
+        <div
+          style={{
+            minWidth: 280,
+            maxWidth: 360,
+            padding: '12px 14px',
+            borderRadius: 12,
+            background: 'linear-gradient(135deg, rgba(107,79,58,0.95), rgba(43,32,16,0.96))',
+            border: '1px solid rgba(255,255,255,0.16)',
+            boxShadow: '0 18px 40px rgba(0,0,0,0.35)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            color: '#F6F2EE',
+          }}
+        >
+          <div
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: '50%',
+              background: 'rgba(255,255,255,0.18)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 14,
+            }}
+          >
+            ✓
+          </div>
+          <div>
+            <div className="kp-mono" style={{ fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', opacity: 0.8 }}>
+              Success
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 500 }}>{successToast.message}</div>
+          </div>
+        </div>
+      </div>
+
+      {isNewDrinkOpen && (
+        <div
+          role="presentation"
+          onClick={closeNewDrinkModal}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(8,10,12,0.55)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 50,
+            padding: 16,
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: 'min(640px, 100%)',
+              background: 'var(--surface)',
+              border: '1px solid var(--line)',
+              borderRadius: 14,
+              padding: 22,
+              boxShadow: '0 30px 60px rgba(0,0,0,0.4)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 18 }}>
+              <div>
+                <div className="kp-eyebrow" style={{ fontSize: 10 }}>Menu · New Drink</div>
+                <h2 style={{ margin: '6px 0 0', fontSize: 18 }}>Tambah menu baru</h2>
+              </div>
+              <button className="kp-btn kp-btn-ghost" onClick={closeNewDrinkModal}>Tutup</button>
+            </div>
+
+            <form onSubmit={handleCreateMenu}>
+              <div style={{ display: 'grid', gap: 14 }}>
+                <div style={{ display: 'grid', gap: 6 }}>
+                  <label className="kp-mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>Nama menu</label>
+                  <input
+                    value={newDrinkName}
+                    onChange={(e) => setNewDrinkName(e.target.value)}
+                    placeholder="Contoh: Es Kopi Susu"
+                    style={{
+                      padding: '10px 12px',
+                      borderRadius: 10,
+                      border: '1px solid var(--line-strong)',
+                      background: 'var(--surface)',
+                      color: 'var(--text)',
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gap: 6 }}>
+                  <label className="kp-mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>Harga</label>
+                  <input
+                    value={newDrinkPrice}
+                    onChange={(e) => setNewDrinkPrice(e.target.value)}
+                    placeholder="Contoh: 18000"
+                    inputMode="numeric"
+                    style={{
+                      padding: '10px 12px',
+                      borderRadius: 10,
+                      border: '1px solid var(--line-strong)',
+                      background: 'var(--surface)',
+                      color: 'var(--text)',
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gap: 6 }}>
+                  <label className="kp-mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>Kategori</label>
+                  <Dropdown
+                    value={newDrinkCategoryId}
+                    onChange={setNewDrinkCategoryId}
+                    options={categoryOptions}
+                    placeholder="Pilih kategori"
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gap: 10 }}>
+                  <div className="kp-mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>Bahan baku</div>
+                  {newDrinkIngredients.map((row, index) => {
+                    const selected = bahanList.find((s) => s.id === row.stockId);
+                    const rowOptions = stockOptions.filter(
+                      (opt) => !usedStockIds.includes(opt.value) || opt.value === row.stockId
+                    );
+                    return (
+                      <div key={`${row.stockId}-${index}`} style={{ display: 'grid', gridTemplateColumns: '1.4fr 0.6fr auto', gap: 10, alignItems: 'center' }}>
+                        <Dropdown
+                          value={row.stockId}
+                          onChange={(value) => updateIngredient(index, 'stockId', value)}
+                          options={rowOptions}
+                          searchable
+                          searchPlaceholder="Cari bahan..."
+                          placeholder="Pilih bahan"
+                        />
+                        <input
+                          value={row.amount}
+                          onChange={(e) => updateIngredient(index, 'amount', e.target.value)}
+                          placeholder={`Jumlah${selected?.unit ? ` (${selected.unit})` : ''}`}
+                          inputMode="decimal"
+                          style={{
+                            padding: '10px 12px',
+                            borderRadius: 10,
+                            border: '1px solid var(--line-strong)',
+                            background: 'var(--surface)',
+                            color: 'var(--text)',
+                          }}
+                        />
+                        <div>
+                          {newDrinkIngredients.length > 1 && (
+                            <button
+                              type="button"
+                              className="kp-btn kp-btn-ghost"
+                              onClick={() => removeIngredientRow(index)}
+                            >
+                              Hapus
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <button type="button" className="kp-btn kp-btn-ghost" onClick={addIngredientRow}>
+                    + Tambah bahan baku
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20 }}>
+                <button type="button" className="kp-btn kp-btn-ghost" onClick={closeNewDrinkModal}>Batal</button>
+                <button type="submit" className="kp-btn" disabled={isSaving}>
+                  {isSaving ? 'Menyimpan...' : 'Simpan'}
+                </button>
+              </div>
+              {submitError && (
+                <div style={{ marginTop: 10, color: 'var(--bad)', fontSize: 12 }}>
+                  {submitError}
+                </div>
+              )}
+            </form>
+          </div>
+        </div>
+      )}
+
+      {isEditOpen && (
+        <div
+          role="presentation"
+          onClick={closeEditModal}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(8,10,12,0.55)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 50,
+            padding: 16,
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: 'min(640px, 100%)',
+              background: 'var(--surface)',
+              border: '1px solid var(--line)',
+              borderRadius: 14,
+              padding: 22,
+              boxShadow: '0 30px 60px rgba(0,0,0,0.4)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 18 }}>
+              <div>
+                <div className="kp-eyebrow" style={{ fontSize: 10 }}>Menu · Update</div>
+                <h2 style={{ margin: '6px 0 0', fontSize: 18 }}>Perbarui menu</h2>
+              </div>
+              <button className="kp-btn kp-btn-ghost" onClick={closeEditModal}>Tutup</button>
+            </div>
+
+            <form onSubmit={handleUpdateMenu}>
+              <div style={{ display: 'grid', gap: 14 }}>
+                <div style={{ display: 'grid', gap: 6 }}>
+                  <label className="kp-mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>Nama menu</label>
+                  <input
+                    value={editMenuName}
+                    onChange={(e) => setEditMenuName(e.target.value)}
+                    placeholder="Contoh: Es Kopi Susu"
+                    style={{
+                      padding: '10px 12px',
+                      borderRadius: 10,
+                      border: '1px solid var(--line-strong)',
+                      background: 'var(--surface)',
+                      color: 'var(--text)',
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gap: 10 }}>
+                  <div className="kp-mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>Resep (bahan baku)</div>
+                  {editIngredients.map((row, index) => {
+                    const selected = bahanList.find((s) => s.id === row.stockId);
+                    const rowOptions = stockOptions.filter(
+                      (opt) => !usedEditStockIds.includes(opt.value) || opt.value === row.stockId
+                    );
+                    return (
+                      <div key={`${row.stockId}-${index}`} style={{ display: 'grid', gridTemplateColumns: '1.4fr 0.6fr auto', gap: 10, alignItems: 'center' }}>
+                        <Dropdown
+                          value={row.stockId}
+                          onChange={(value) => updateEditIngredient(index, 'stockId', value)}
+                          options={rowOptions}
+                          searchable
+                          searchPlaceholder="Cari bahan..."
+                          placeholder="Pilih bahan"
+                        />
+                        <input
+                          value={row.amount}
+                          onChange={(e) => updateEditIngredient(index, 'amount', e.target.value)}
+                          placeholder={`Jumlah${selected?.unit ? ` (${selected.unit})` : ''}`}
+                          inputMode="decimal"
+                          style={{
+                            padding: '10px 12px',
+                            borderRadius: 10,
+                            border: '1px solid var(--line-strong)',
+                            background: 'var(--surface)',
+                            color: 'var(--text)',
+                          }}
+                        />
+                        <div>
+                          {editIngredients.length > 1 && (
+                            <button
+                              type="button"
+                              className="kp-btn kp-btn-ghost"
+                              onClick={() => removeEditIngredientRow(index)}
+                            >
+                              Hapus
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <button type="button" className="kp-btn kp-btn-ghost" onClick={addEditIngredientRow}>
+                    + Tambah bahan baku
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20 }}>
+                <button type="button" className="kp-btn kp-btn-ghost" onClick={closeEditModal}>Batal</button>
+                <button type="submit" className="kp-btn" disabled={editSaving}>
+                  {editSaving ? 'Menyimpan...' : 'Simpan'}
+                </button>
+              </div>
+              {editError && (
+                <div style={{ marginTop: 10, color: 'var(--bad)', fontSize: 12 }}>
+                  {editError}
+                </div>
+              )}
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
