@@ -2,7 +2,7 @@ import React from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../lib/api.js';
-import LogoKupiku from '../assets/kupikuLogo.png';
+import PublicNavbar from '../components/PublicNavbar.jsx';
 
 export default function Menu() {
   const nav = useNavigate();
@@ -97,35 +97,13 @@ export default function Menu() {
 
   return (
     <div className="kp" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      {/* Top nav */}
-      <nav style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '24px 56px', borderBottom: '1px solid var(--line)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={() => nav('/')}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', height: '100%' }} onClick={() => nav('/')}>
-                    <img 
-                    src={LogoKupiku} 
-                    alt="Kupiku Logo" 
-                    style={{ width: 130, height: 130, objectFit: 'contain', margin: '-35px 0' }} 
-                    />
-                </div>
-            </div>
-        </div>
-        <div style={{ display: 'flex', gap: 36, fontSize: 13, color: 'var(--text-muted)' }}>
-          <span style={{ cursor: 'pointer' }} onClick={() => nav('/')}>Discover</span>
-          <span style={{ color: 'var(--text)' }}>Menu</span>
-          <span style={{ cursor: 'pointer' }} onClick={() => nav('/mood')}>Mood</span>
-          <span>Locations</span>
-        </div>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <span style={{ fontSize: 13, color: 'var(--text-muted)', cursor: 'pointer' }} onClick={() => nav('/login')}>Sign in</span>
-          <button className="kp-btn kp-btn-sm" onClick={() => nav('/login')}>
-            Order
-          </button>
-        </div>
-      </nav>
+      <PublicNavbar
+        active="menu"
+        onMoodClick={() => nav('/mood')}
+        onLocationsClick={() => nav('/#maps')}
+        onAdminClick={() => nav('/login')}
+        onOrderClick={() => nav('/login')}
+      />
 
       {/* Header */}
       <div style={{ padding: '64px 56px 40px', display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 60, alignItems: 'end' }}>

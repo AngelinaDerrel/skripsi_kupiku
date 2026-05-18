@@ -1,20 +1,8 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import NavIcon from '../components/NavIcon.jsx';
+import AdminLayout from '../components/AdminLayout.jsx';
 import api from '../lib/api.js';
-
-const NAV = [
-  { id: 'menu', label: 'Menu', icon: 'cup', active: true },
-  { id: 'stock', label: 'Stock', icon: 'box' },
-  { id: 'staff', label: 'Staff', icon: 'people' },
-//   { id: 'orders', label: 'Orders', icon: 'ticket', badge: 12 },
-  { id: 'moods', label: 'Mood insights', icon: 'pulse' },
-];
-const NAV_BOTTOM = [
-  { id: 'logout', label: 'Logout', icon: 'logout' },
-];
 
 function CategoryFilter({ value, onChange, categories }) {
   return (
@@ -147,7 +135,6 @@ function Dropdown({ value, onChange, options, placeholder, style, searchable = f
 }
 
 export default function Dashboard() {
-  const nav = useNavigate();
   const loc = useLocation();
   const [category, setCategory] = useState('all');
   const [showAll, setShowAll] = useState(false);
@@ -169,10 +156,15 @@ export default function Dashboard() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editMenuId, setEditMenuId] = useState('');
   const [editMenuName, setEditMenuName] = useState('');
+  const [editMenuPrice, setEditMenuPrice] = useState('');
   const [editIngredients, setEditIngredients] = useState([{ stockId: '', amount: '' }]);
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState('');
   const [successToast, setSuccessToast] = useState({ visible: false, message: '' });
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [detailItem, setDetailItem] = useState(null);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   const normalizeCategoryId = (value) =>
     String(value || '')
@@ -320,6 +312,8 @@ export default function Dashboard() {
   const stockOptions = bahanList.map((item) => ({ value: item.id, label: item.name }));
   const usedStockIds = newDrinkIngredients.map((row) => row.stockId).filter(Boolean);
   const usedEditStockIds = editIngredients.map((row) => row.stockId).filter(Boolean);
+  const detailPrice = detailItem?.price;
+  const detailPriceLabel = typeof detailPrice === 'number' ? detailPrice.toLocaleString('id-ID') : detailPrice;
 
   function openNewDrinkModal() {
     setIsNewDrinkOpen(true);
@@ -353,16 +347,38 @@ export default function Dashboard() {
     setIsEditOpen(true);
     setEditMenuId(String(item.id));
     setEditMenuName(item.name || '');
+    setEditMenuPrice(item.price ?? '');
     setEditIngredients(item.ingredients?.length ? item.ingredients : [{ stockId: '', amount: '' }]);
     setEditError('');
+  }
+
+  function openDetailModal(item) {
+    setIsDetailOpen(true);
+    setDetailItem(item || null);
   }
 
   function closeEditModal() {
     setIsEditOpen(false);
     setEditMenuId('');
     setEditMenuName('');
+    setEditMenuPrice('');
     setEditIngredients([{ stockId: '', amount: '' }]);
     setEditError('');
+  }
+
+  function closeDetailModal() {
+    setIsDetailOpen(false);
+    setDetailItem(null);
+  }
+
+  function openDeleteModal(item) {
+    setDeleteTarget(item || null);
+    setIsDeleteOpen(true);
+  }
+
+  function closeDeleteModal() {
+    setIsDeleteOpen(false);
+    setDeleteTarget(null);
   }
 
   function updateEditIngredient(index, field, value) {
@@ -435,9 +451,10 @@ export default function Dashboard() {
     e.preventDefault();
     if (editSaving) return;
     setEditError('');
-    const trimmedName = editMenuName.trim();
-    if (!trimmedName) {
-      alert('Nama menu wajib diisi.');
+
+    const parsedPrice = Number(String(editMenuPrice).replace(/[^0-9.]/g, ''));
+    if (!parsedPrice) {
+      alert('Harga wajib diisi.');
       return;
     }
 
@@ -452,13 +469,13 @@ export default function Dashboard() {
     try {
       setEditSaving(true);
       const payload = {
-        nama_menu: trimmedName,
+        harga: parsedPrice,
         bahan: bahanPayload,
       };
       const updated = await api.put(`menu/${editMenuId}`, payload);
       const mapped = mapMenuItems([updated])[0];
       setMenuItems((current) => current.map((item) => (String(item.id) === String(editMenuId) ? mapped : item)));
-      setSuccessToast({ visible: true, message: 'Menu berhasil diperbarui.' });
+      setSuccessToast({ visible: true, message: 'Berhasil update menu.' });
       closeEditModal();
     } catch (err) {
       const message = (err && err.message) || 'Gagal memperbarui menu.';
@@ -470,88 +487,18 @@ export default function Dashboard() {
   }
 
   async function handleDelete(itemId) {
-    if (!confirm('Hapus menu ini?')) return;
     try {
       await api.del(`menu/${itemId}`);
       setMenuItems((current) => current.filter((item) => item.id !== itemId));
+      setSuccessToast({ visible: true, message: 'Berhasil delete menu.' });
+      closeDeleteModal();
     } catch (err) {
       alert((err && err.message) || 'Failed to delete menu');
     }
   }
 
   return (
-    <div className="kp" style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-      <aside style={{
-        width: 232, flex: 'none', background: '#0B0B0B',
-        borderRight: '1px solid var(--line)', padding: '22px 14px',
-        display: 'flex', flexDirection: 'column'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 8px 22px', cursor: 'pointer' }} onClick={() => {
-          if (loc.pathname === '/admin') {
-            const el = document.getElementById('maps');
-            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            else nav('/admin');
-          } else {
-            nav('/admin#maps');
-          }
-        }}> 
-          <div>
-            <div style={{ fontWeight: 600, fontSize: 14 }}>Kupiku Coffee</div>
-            <div className="kp-mono" style={{ fontSize: 10, color: 'var(--text-muted)' }}>Yogyakarta</div>
-          </div>
-        </div>
-
-        <div className="kp-eyebrow" style={{ padding: '4px 8px', fontSize: 10 }}>Workspace</div>
-        <nav style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {NAV.map((item) => (
-            <div key={item.id} onClick={() => {
-              if (item.id === 'staff') nav('/admin/staff');
-              else nav('/admin');
-            }} style={{
-              display: 'flex', alignItems: 'center', gap: 12,
-              padding: '9px 10px', borderRadius: 8,
-              background: item.active ? 'rgba(107,79,58,0.18)' : 'transparent',
-              border: item.active ? '1px solid rgba(107,79,58,0.3)' : '1px solid transparent',
-              color: item.active ? 'var(--text)' : 'var(--text-muted)',
-              fontSize: 13, cursor: 'pointer'
-            }}>
-              <NavIcon name={item.icon} active={item.active} />
-              <span style={{ flex: 1 }}>{item.label}</span>
-              {item.badge && (
-                <span className="kp-mono" style={{
-                  fontSize: 10, color: 'var(--brown-3)',
-                  background: 'rgba(107,79,58,0.18)',
-                  padding: '2px 6px', borderRadius: 4,
-                }}>{item.badge}</span>
-              )}
-            </div>
-          ))}
-        </nav>
-
-        <div style={{ flex: 1 }} />
-
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {NAV_BOTTOM.map((item) => (
-            <div key={item.id} style={{
-              display: 'flex', alignItems: 'center', gap: 12,
-              padding: '9px 10px', borderRadius: 8,
-              color: 'var(--text-muted)', fontSize: 13, cursor: 'pointer'
-            }}>
-              <NavIcon name={item.icon} />
-              <span>{item.label}</span>
-            </div>
-          ))}
-        </nav>
-
-        <div style={{ marginTop: 14, padding: 12, borderRadius: 10, background: 'var(--surface)', border: '1px solid var(--line)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--good)', boxShadow: '0 0 0 3px rgba(122,143,106,0.18)' }} />
-            <span className="kp-mono" style={{ fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>STORE OPEN</span>
-          </div>
-          <div className="kp-mono" style={{ fontSize: 11, color: 'var(--text)' }}>07:00 — 22:00 WIB</div>
-        </div>
-      </aside>
-
+    <AdminLayout>
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
         <div style={{
           padding: '18px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -644,6 +591,13 @@ export default function Dashboard() {
                       <button
                         className="kp-btn kp-btn-ghost"
                         style={{ padding: '4px 10px', fontSize: 12 }}
+                        onClick={() => openDetailModal(item)}
+                      >
+                        Detail
+                      </button>
+                      <button
+                        className="kp-btn kp-btn-ghost"
+                        style={{ padding: '4px 10px', fontSize: 12 }}
                         onClick={() => openEditModal(item)}
                       >
                         Update
@@ -651,7 +605,7 @@ export default function Dashboard() {
                       <button
                         className="kp-btn kp-btn-danger"
                         style={{ padding: '4px 10px', fontSize: 12 }}
-                        onClick={() => handleDelete(item.id)}
+                        onClick={() => openDeleteModal(item)}
                       >
                         Delete
                       </button>
@@ -909,8 +863,25 @@ export default function Dashboard() {
                   <label className="kp-mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>Nama menu</label>
                   <input
                     value={editMenuName}
-                    onChange={(e) => setEditMenuName(e.target.value)}
+                    readOnly
                     placeholder="Contoh: Es Kopi Susu"
+                    style={{
+                      padding: '10px 12px',
+                      borderRadius: 10,
+                      border: '1px solid var(--line-strong)',
+                      background: 'var(--surface)',
+                      color: 'var(--text)',
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gap: 6 }}>
+                  <label className="kp-mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>Harga</label>
+                  <input
+                    value={editMenuPrice}
+                    onChange={(e) => setEditMenuPrice(e.target.value)}
+                    placeholder="Contoh: 18000"
+                    inputMode="numeric"
                     style={{
                       padding: '10px 12px',
                       borderRadius: 10,
@@ -986,6 +957,170 @@ export default function Dashboard() {
           </div>
         </div>
       )}
-    </div>
+
+      {isDetailOpen && (
+        <div
+          role="presentation"
+          onClick={closeDetailModal}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(8,10,12,0.55)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 50,
+            padding: 16,
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: 'min(520px, 100%)',
+              background: 'var(--surface)',
+              border: '1px solid var(--line)',
+              borderRadius: 14,
+              padding: 22,
+              boxShadow: '0 30px 60px rgba(0,0,0,0.4)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 18 }}>
+              <div>
+                <div className="kp-eyebrow" style={{ fontSize: 10 }}>Menu · Detail</div>
+                <h2 style={{ margin: '6px 0 0', fontSize: 18 }}>{detailItem?.name || '-'}</h2>
+              </div>
+              <button className="kp-btn kp-btn-ghost" onClick={closeDetailModal}>Tutup</button>
+            </div>
+
+            <div style={{ display: 'grid', gap: 10 }}>
+              <div style={{ display: 'grid', gap: 8 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 10, fontSize: 13 }}>
+                  <span className="kp-mono" style={{ color: 'var(--text-muted)', fontSize: 11 }}>ID Menu</span>
+                  <span className="kp-mono" style={{ fontSize: 12 }}>{detailItem?.id ?? '-'}</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 10, fontSize: 13 }}>
+                  <span className="kp-mono" style={{ color: 'var(--text-muted)', fontSize: 11 }}>Kategori</span>
+                  <span>{detailItem?.categoryLabel || '-'}</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 10, fontSize: 13 }}>
+                  <span className="kp-mono" style={{ color: 'var(--text-muted)', fontSize: 11 }}>Harga</span>
+                  <span className="kp-mono" style={{ fontSize: 12 }}>{detailPriceLabel ? `Rp ${detailPriceLabel}` : '-'}</span>
+                </div>
+              </div>
+
+              <div className="kp-mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                Resep (bahan baku)
+              </div>
+              {detailItem?.ingredients?.length ? (
+                <div style={{ display: 'grid', gap: 8 }}>
+                  {detailItem.ingredients.map((row, index) => {
+                    const selected = bahanList.find((s) => s.id === row.stockId);
+                    const name = selected?.name || `Bahan ${row.stockId || '-'}`;
+                    const unit = selected?.unit ? ` ${selected.unit}` : '';
+                    const amount = row.amount ? `${row.amount}${unit}` : '-';
+                    return (
+                      <div
+                        key={`${row.stockId}-${index}`}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '10px 12px',
+                          borderRadius: 10,
+                          border: '1px solid var(--line)'
+                        }}
+                      >
+                        <span style={{ fontWeight: 500 }}>{name}</span>
+                        <span className="kp-mono" style={{ fontSize: 12, color: 'var(--text-muted)' }}>{amount}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                  Belum ada resep.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isDeleteOpen && (
+        <div
+          role="presentation"
+          onClick={closeDeleteModal}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(8,10,12,0.55)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 55,
+            padding: 16,
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: 'min(520px, 100%)',
+              background: 'var(--surface)',
+              border: '1px solid var(--line)',
+              borderRadius: 16,
+              padding: 22,
+              boxShadow: '0 30px 60px rgba(0,0,0,0.45)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div>
+                <div className="kp-eyebrow" style={{ fontSize: 10 }}>Konfirmasi</div>
+                <h2 style={{ margin: '6px 0 0', fontSize: 18 }}>Hapus menu?</h2>
+              </div>
+              <button className="kp-btn kp-btn-ghost" onClick={closeDeleteModal}>Tutup</button>
+            </div>
+
+            <div style={{ display: 'grid', gap: 10, color: 'var(--text-muted)', fontSize: 13 }}>
+              <div>
+                Kamu akan menghapus menu{' '}
+                <span style={{ color: 'var(--text)', fontWeight: 500 }}>
+                  {deleteTarget?.name || '-'}
+                </span>{' '}
+                beserta resepnya. Aksi ini tidak bisa dibatalkan.
+              </div>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '120px 1fr',
+                  gap: 10,
+                  padding: '10px 12px',
+                  borderRadius: 10,
+                  border: '1px solid var(--line)',
+                }}
+              >
+                <span className="kp-mono" style={{ fontSize: 11 }}>ID Menu</span>
+                <span className="kp-mono" style={{ fontSize: 12 }}>{deleteTarget?.id ?? '-'}</span>
+                <span className="kp-mono" style={{ fontSize: 11 }}>Kategori</span>
+                <span>{deleteTarget?.categoryLabel || '-'}</span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 18 }}>
+              <button className="kp-btn kp-btn-ghost" onClick={closeDeleteModal}>Batal</button>
+              <button
+                className="kp-btn kp-btn-danger"
+                onClick={() => handleDelete(deleteTarget?.id)}
+              >
+                Hapus menu
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </AdminLayout>
   );
 }

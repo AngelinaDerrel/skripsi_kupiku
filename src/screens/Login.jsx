@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
 
-import LogoKupiku from '../assets/kupikuLogo.png';
+import PublicNavbar from '../components/PublicNavbar.jsx';
 
 const DEMO_USERS = [
   {
@@ -106,24 +106,12 @@ export default function Login() {
         pointerEvents: 'none'
       }} />
 
-      {/* Top nav */}
-      <nav style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '24px 56px', borderBottom: '1px solid var(--line)',
-        position: 'relative', zIndex: 1
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={() => nav('/')}>
-          <img
-            src={LogoKupiku}
-            alt="Kupiku Logo"
-            style={{ width: 130, height: 130, objectFit: 'contain', margin: '-35px 0' }}
-          />
-        </div>
-        <div className="kp-mono" style={{ fontSize: 11, color: 'var(--text-dim)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-          Secure · OAuth 2.0
-        </div>
-        <div style={{ fontSize: 13, color: 'var(--text-muted)', cursor: 'pointer' }} onClick={() => nav('/')}>← Back</div>
-      </nav>
+      <PublicNavbar
+        active="discover"
+        onMoodClick={() => nav('/login', { state: { next: '/mood' } })}
+        onAdminClick={() => nav('/login', { state: { next: '/admin' } })}
+        onOrderClick={() => nav('/login')}
+      />
 
       {/* Center content */}
       <div style={{

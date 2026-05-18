@@ -1,8 +1,8 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
-import LogoKupiku from '../assets/kupikuLogo.png';
 import Map from '../components/Map';
+import PublicNavbar from '../components/PublicNavbar.jsx';
 
 export default function Landing() {
   const nav = useNavigate();
@@ -20,37 +20,20 @@ export default function Landing() {
 
   return (
     <div className="kp" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <nav style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '24px 56px', borderBottom: '1px solid var(--line)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', height: '100%' }} onClick={() => nav('/')}>
-            <img
-              src={LogoKupiku}
-              alt="Kupiku Logo"
-              style={{ width: 130, height: 130, objectFit: 'contain', margin: '-35px 0' }}
-            />
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: 36, fontSize: 13, color: 'var(--text-muted)' }}>
-          <span style={{ color: 'var(--text)', cursor: 'pointer' }} onClick={() => nav('/')}>Discover</span>
-          <span style={{ cursor: 'pointer' }} onClick={() => nav('/menu')}>Menu</span>
-          <span style={{ cursor: 'pointer' }} onClick={() => nav('/login', { state: { next: '/mood' } })}>Mood</span>
-          <span style={{ cursor: 'pointer' }} onClick={() => {
-            if (loc.pathname === '/') {
-              const el = document.getElementById('maps');
-              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            } else {
-              nav('/#maps');
-            }
-          }}>Locations</span>
-        </div>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <span style={{ fontSize: 13, color: 'var(--text-muted)', cursor: 'pointer' }} onClick={() => nav('/login', { state: { next: '/admin' } })}>Admin</span>
-          <button className="kp-btn kp-btn-sm" onClick={() => nav('/login')}>Order</button>
-        </div>
-      </nav>
+      <PublicNavbar
+        active="discover"
+        onMoodClick={() => nav('/login', { state: { next: '/mood' } })}
+        onLocationsClick={() => {
+          if (loc.pathname === '/') {
+            const el = document.getElementById('maps');
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          } else {
+            nav('/#maps');
+          }
+        }}
+        onAdminClick={() => nav('/login', { state: { next: '/admin' } })}
+        onOrderClick={() => nav('/login')}
+      />
 
       <div style={{
         flex: 1, display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 80,

@@ -1,25 +1,9 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import NavIcon from '../components/NavIcon.jsx';
+import AdminLayout from '../components/AdminLayout.jsx';
 import api from '../lib/api.js';
 
-const NAV = [
-  { id: 'overview', label: 'Overview', icon: 'home' },
-  { id: 'menu', label: 'Menu', icon: 'cup' },
-  { id: 'stock', label: 'Stock', icon: 'box' },
-  { id: 'staff', label: 'Staff', icon: 'people' },
-  { id: 'moods', label: 'Mood insights', icon: 'pulse' },
-];
-const NAV_BOTTOM = [
-  { id: 'settings', label: 'Settings', icon: 'gear' },
-  { id: 'help', label: 'Support', icon: 'help' },
-  { id: 'logout', label: 'Logout', icon: 'logout' },
-];
-
 export default function Staff() {
-  const nav = useNavigate();
-  const loc = useLocation();
   const [list, setList] = useState([]);
   const [showAdd, setShowAdd] = useState(false);
   const [name, setName] = useState('');
@@ -142,66 +126,7 @@ export default function Staff() {
   }, []);
 
   return (
-    <div className="kp" style={{ display: 'flex', minHeight: '100vh' }}>
-      <aside style={{
-        width: 232, flex: 'none', background: '#0B0B0B',
-        borderRight: '1px solid var(--line)', padding: '22px 14px',
-        display: 'flex', flexDirection: 'column'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 8px 22px', cursor: 'pointer' }} onClick={() => nav('/')}>
-          <div>
-            <div style={{ fontWeight: 600, fontSize: 14 }}>Kupiku Coffee</div>
-            <div className="kp-mono" style={{ fontSize: 10, color: 'var(--text-muted)' }}>Yogyakarta</div>
-          </div>
-        </div>
-
-        <div className="kp-eyebrow" style={{ padding: '4px 8px', fontSize: 10 }}>Workspace</div>
-        <nav style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {NAV.map((item) => {
-            const active = item.id === 'staff' ? loc.pathname.startsWith('/admin/staff') : loc.pathname === '/admin';
-            return (
-              <div key={item.id} onClick={() => {
-                if (item.id === 'staff') nav('/admin/staff');
-                else nav('/admin');
-              }} style={{
-                display: 'flex', alignItems: 'center', gap: 12,
-                padding: '9px 10px', borderRadius: 8,
-                background: active ? 'rgba(107,79,58,0.18)' : 'transparent',
-                border: active ? '1px solid rgba(107,79,58,0.3)' : '1px solid transparent',
-                color: active ? 'var(--text)' : 'var(--text-muted)',
-                fontSize: 13, cursor: 'pointer'
-              }}>
-                <NavIcon name={item.icon} active={active} />
-                <span style={{ flex: 1 }}>{item.label}</span>
-              </div>
-            );
-          })}
-        </nav>
-
-        <div style={{ flex: 1 }} />
-
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {NAV_BOTTOM.map((item) => (
-            <div key={item.id} style={{
-              display: 'flex', alignItems: 'center', gap: 12,
-              padding: '9px 10px', borderRadius: 8,
-              color: 'var(--text-muted)', fontSize: 13, cursor: 'pointer'
-            }}>
-              <NavIcon name={item.icon} />
-              <span>{item.label}</span>
-            </div>
-          ))}
-        </nav>
-
-        <div style={{ marginTop: 14, padding: 12, borderRadius: 10, background: 'var(--surface)', border: '1px solid var(--line)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--good)', boxShadow: '0 0 0 3px rgba(122,143,106,0.18)' }} />
-            <span className="kp-mono" style={{ fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>STORE OPEN</span>
-          </div>
-          <div className="kp-mono" style={{ fontSize: 11, color: 'var(--text)' }}>07:00 — 22:00 WIB</div>
-        </div>
-      </aside>
-
+    <AdminLayout>
       <main style={{ flex: 1, padding: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
           <div>
@@ -319,6 +244,6 @@ export default function Staff() {
           </div>
         </div>
       )}
-    </div>
+    </AdminLayout>
   );
 }
