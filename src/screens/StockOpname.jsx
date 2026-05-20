@@ -28,6 +28,8 @@ export default function StockOpname({ layout = 'staff' }) {
   const [successToast, setSuccessToast] = useState({ visible: false, message: '' });
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [stokMasukTotals, setStokMasukTotals] = useState({});
+  const [searchAdmin, setSearchAdmin] = useState('');
 
   useEffect(() => {
     if (!isAdmin) return undefined;
@@ -36,9 +38,12 @@ export default function StockOpname({ layout = 'staff' }) {
       setBahanLoading(true);
       setBahanError(null);
       try {
-        const data = await api.get('bahanbaku');
+        const [bahanData, stokData] = await Promise.all([
+          api.get('bahanbaku'),
+          api.get('stok-masuk'),
+        ]);
         if (!mounted) return;
-        const arr = Array.isArray(data) ? data : (data?.data ?? []);
+        const arr = Array.isArray(bahanData) ? bahanData : (bahanData?.data ?? []);
         const mapped = arr
           .map((item, idx) => ({
             id: item.id_bahan ?? item.id ?? idx,
@@ -47,6 +52,14 @@ export default function StockOpname({ layout = 'staff' }) {
           }))
           .filter((item) => item.id && item.name);
         setBahanList(mapped);
+
+        const stokArr = Array.isArray(stokData) ? stokData : (stokData?.data ?? []);
+        const totals = {};
+        stokArr.forEach((e) => {
+          const id = e.id_bahan;
+          totals[id] = (totals[id] || 0) + Number(e.jumlah || 0);
+        });
+        setStokMasukTotals(totals);
       } catch (err) {
         if (!mounted) return;
         setBahanError(err?.message || 'Gagal memuat bahan baku');
@@ -184,10 +197,14 @@ export default function StockOpname({ layout = 'staff' }) {
   }
 
   if (isAdmin) {
+    const filteredBahan = searchAdmin.trim()
+      ? bahanList.filter((b) => b.name.toLowerCase().includes(searchAdmin.toLowerCase()) || String(b.id).includes(searchAdmin))
+      : bahanList;
+
     return (
       <Layout>
         <div style={{ padding: 24 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
             <div>
               <div className="kp-eyebrow" style={{ fontSize: 10 }}>{headerLabel}</div>
               <h1 style={{ fontSize: 20, margin: '4px 0 0' }}>Bahan baku</h1>
@@ -195,16 +212,39 @@ export default function StockOpname({ layout = 'staff' }) {
             <button className="kp-btn" onClick={openCreateModal}>+ New bahan</button>
           </div>
 
+          {/* Search */}
+          <div style={{ marginBottom: 14 }}>
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              padding: '8px 12px', borderRadius: 8,
+              background: 'var(--surface)', border: '1px solid var(--line)', width: 280,
+            }}>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <circle cx="6" cy="6" r="4" stroke="var(--text-muted)" strokeWidth="1.4" />
+                <path d="M9 9l3 3" stroke="var(--text-muted)" strokeWidth="1.4" strokeLinecap="round" />
+              </svg>
+              <input
+                value={searchAdmin}
+                onChange={(e) => setSearchAdmin(e.target.value)}
+                placeholder="Cari bahan baku..."
+                style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', color: 'var(--text)', fontSize: 13 }}
+              />
+              {searchAdmin && (
+                <button onClick={() => setSearchAdmin('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 16, padding: 0, lineHeight: 1 }}>×</button>
+              )}
+            </div>
+          </div>
+
           <div className="kp-card" style={{ overflow: 'hidden' }}>
             <div style={{
               display: 'grid',
-              gridTemplateColumns: '120px 1.6fr 1fr 180px',
+              gridTemplateColumns: '100px 1.6fr 100px 1fr 180px',
               padding: '14px 18px', borderBottom: '1px solid var(--line)',
               fontSize: 11, fontFamily: 'var(--font-mono)',
               textTransform: 'uppercase', letterSpacing: '0.08em',
               color: 'var(--text-muted)', background: 'rgba(255,255,255,0.015)'
             }}>
-              <span>ID</span><span>Nama bahan</span><span>Satuan</span><span>Action</span>
+              <span>ID</span><span>Nama bahan</span><span>Jumlah</span><span>Satuan</span><span>Action</span>
             </div>
 
             {bahanLoading && (
@@ -217,22 +257,25 @@ export default function StockOpname({ layout = 'staff' }) {
                 {bahanError}
               </div>
             )}
-            {!bahanLoading && !bahanError && bahanList.length === 0 && (
+            {!bahanLoading && !bahanError && filteredBahan.length === 0 && (
               <div style={{ padding: 18, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
-                Data bahan baku kosong.
+                {searchAdmin ? `Tidak ditemukan "${searchAdmin}"` : 'Data bahan baku kosong.'}
               </div>
             )}
 
-            {!bahanLoading && !bahanError && bahanList.map((item, i) => (
+            {!bahanLoading && !bahanError && filteredBahan.map((item, i) => (
               <div key={item.id} style={{
                 display: 'grid',
-                gridTemplateColumns: '120px 1.6fr 1fr 180px',
+                gridTemplateColumns: '100px 1.6fr 100px 1fr 180px',
                 padding: '14px 18px',
-                borderBottom: i < bahanList.length - 1 ? '1px solid var(--line)' : 'none',
+                borderBottom: i < filteredBahan.length - 1 ? '1px solid var(--line)' : 'none',
                 fontSize: 13, alignItems: 'center'
               }}>
                 <span className="kp-mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{item.id}</span>
                 <span style={{ fontWeight: 500 }}>{item.name}</span>
+                <span style={{ fontWeight: 600, color: stokMasukTotals[item.id] ? 'var(--text)' : 'var(--text-muted)' }}>
+                  {stokMasukTotals[item.id] != null ? Number(stokMasukTotals[item.id]).toLocaleString('id-ID') : '—'}
+                </span>
                 <span style={{ color: 'var(--text-muted)' }}>{item.unit || '-'}</span>
                 <span>
                   <div style={{ display: 'inline-flex', gap: 6 }}>

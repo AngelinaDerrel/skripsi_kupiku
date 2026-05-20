@@ -1,72 +1,60 @@
-import React, { useEffect } from 'react';
-import { useState } from 'react';
-import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { GoogleLogin } from '@react-oauth/google';
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 
 import PublicNavbar from '../components/PublicNavbar.jsx';
 import { useToast } from '../components/Toast.jsx';
 import api from '../lib/api.js';
 
-export default function Login() {
+export default function Register() {
   const nav = useNavigate();
-  const { state } = useLocation();
-  const nextPath = state?.next;
   const toast = useToast();
   const [status, setStatus] = useState('idle');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  const [form, setForm] = useState({ name: '', email: '', password: '', password_confirmation: '' });
+  const [errors, setErrors] = useState({});
 
-  useEffect(() => {
-    if (state?.registered) {
-      toast('Akun berhasil dibuat. Silakan masuk.', 'success');
-    }
-  }, []);
-
-  function navigateAfterLogin(user) {
-    const role = user?.role;
-    if (role === 'admin' || role === 'owner') return nav('/admin');
-    if (role === 'staff') return nav('/staff/orders');
-
-    const allowedCustomerRoutes = ['/menu', '/mood', '/track', '/order'];
-    if (nextPath && allowedCustomerRoutes.includes(nextPath)) return nav(nextPath);
-    return nav('/mood');
+  function set(field, value) {
+    setForm(prev => ({ ...prev, [field]: value }));
+    if (errors[field]) setErrors(prev => ({ ...prev, [field]: null }));
   }
 
-  async function handleLogin(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
+
+    const newErrors = {};
+    if (!form.name.trim()) newErrors.name = 'Nama tidak boleh kosong';
+    if (!form.email.trim()) newErrors.email = 'Email tidak boleh kosong';
+    if (form.password.length < 8) newErrors.password = 'Password minimal 8 karakter';
+    if (form.password !== form.password_confirmation) newErrors.password_confirmation = 'Password tidak cocok';
+    if (Object.keys(newErrors).length) {
+      setErrors(newErrors);
+      return;
+    }
+
     setStatus('loading');
     try {
-      const data = await api.post('/login', { email, password });
-      localStorage.setItem('kupiku_user', JSON.stringify(data.user));
-      localStorage.setItem('kupiku_token', data.token);
-      setStatus('idle');
-      navigateAfterLogin(data.user);
+      await api.post('/register', form);
+      nav('/login', { state: { registered: true } });
     } catch (err) {
       setStatus('idle');
-      if (err.status === 404) {
-        toast('Akun anda belum terdaftar.\nRegister terlebih dahulu atau login by Google.', 'warn');
-      } else if (err.status === 401) {
-        toast('Password salah. Silakan coba lagi.', 'warn');
+      if (err.status === 422) {
+        const apiErrors = err.data?.errors || {};
+        const mapped = {};
+        if (apiErrors.email) mapped.email = apiErrors.email[0];
+        if (apiErrors.password) mapped.password = apiErrors.password[0];
+        if (apiErrors.name) mapped.name = apiErrors.name[0];
+        setErrors(mapped);
       } else {
         toast('Terjadi kesalahan. Periksa koneksi anda.', 'warn');
       }
     }
   }
 
-  async function handleGoogleLogin(credentialResponse) {
-    setStatus('loading');
-    try {
-      const data = await api.post('/auth/google', { token: credentialResponse.credential });
-      localStorage.setItem('kupiku_user', JSON.stringify(data.user));
-      localStorage.setItem('kupiku_token', data.token);
-      setStatus('idle');
-      navigateAfterLogin(data.user);
-    } catch (err) {
-      setStatus('idle');
-      toast('Login Google gagal. Coba lagi.', 'warn');
-    }
-  }
+  const inputStyle = (field) => ({
+    padding: '10px 12px', borderRadius: 10,
+    border: `1px solid ${errors[field] ? 'rgba(197,90,90,0.6)' : 'var(--line-strong)'}`,
+    background: 'var(--surface)', color: 'var(--text)',
+    fontSize: 13, outline: 'none', width: '100%', boxSizing: 'border-box'
+  });
 
   return (
     <div className="kp" style={{
@@ -75,7 +63,7 @@ export default function Login() {
     }}>
       <div style={{
         position: 'absolute', inset: 0,
-        background: 'radial-gradient(circle at 80% 20%, rgba(107,79,58,0.18), transparent 50%), radial-gradient(circle at 15% 85%, rgba(168,131,95,0.10), transparent 45%)',
+        background: 'radial-gradient(circle at 20% 20%, rgba(107,79,58,0.16), transparent 50%), radial-gradient(circle at 85% 80%, rgba(168,131,95,0.10), transparent 45%)',
         pointerEvents: 'none'
       }} />
 
@@ -97,30 +85,30 @@ export default function Login() {
         }}>
           <div className="kp-eyebrow" style={{ marginBottom: 28, display: 'flex', alignItems: 'center', gap: 12 }}>
             <span style={{ width: 24, height: 1, background: 'var(--brown-2)' }}></span>
-            Members only · mood vault
+            Bergabung · mood vault
           </div>
 
           <h1 className="kp-display" style={{
             fontSize: 64, lineHeight: 0.98, margin: 0, color: 'var(--text)',
             textWrap: 'balance'
           }}>
-            Sign in to find<br />
-            your <span style={{ fontStyle: 'italic', color: 'var(--brown-3)' }}>mood match.</span>
+            Temukan kopi<br />
+            yang <span style={{ fontStyle: 'italic', color: 'var(--brown-3)' }}>tepat untukmu.</span>
           </h1>
 
           <p style={{
             fontSize: 15, lineHeight: 1.65, color: 'var(--text-muted)',
             maxWidth: 420, marginTop: 28, marginBottom: 0
           }}>
-            Kami menyimpan mood dan rekomendasi kopi anda agar setiap cangkir
-            semakin sesuai selera. Masuk dengan email atau Google.
+            Daftar sebagai member Kupiku untuk menikmati fitur mood selection,
+            rekomendasi kopi personal, dan riwayat pesanan anda.
           </p>
 
           <div style={{ marginTop: 40, display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 380 }}>
             {[
-              { t: 'Login via email atau Google', d: 'Pilih cara yang paling nyaman untuk anda.' },
-              { t: 'Mood history tetap private', d: 'Hanya anda dan barista anda yang bisa melihat.' },
-              { t: 'Logout kapan saja', d: 'Cabut akses sewaktu-waktu dari profil anda.' },
+              { t: 'Rekomendasi kopi personal', d: 'Kami belajar dari mood dan pilihan anda setiap kunjungan.' },
+              { t: 'Riwayat mood tersimpan', d: 'Akses kembali favorit anda kapan saja.' },
+              { t: 'Gratis & aman', d: 'Tidak ada biaya tersembunyi, data anda tidak dijual.' },
             ].map((item, i) => (
               <div key={i} style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
                 <div style={{
@@ -139,7 +127,7 @@ export default function Login() {
           </div>
         </div>
 
-        {/* Right — auth card */}
+        {/* Right — register card */}
         <div style={{
           padding: '80px 56px',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -163,85 +151,87 @@ export default function Login() {
               }} />
             </div>
 
-            <div className="kp-eyebrow" style={{ marginBottom: 10, fontSize: 10 }}>Selamat datang</div>
+            <div className="kp-eyebrow" style={{ marginBottom: 10, fontSize: 10 }}>Anggota baru</div>
             <h2 className="kp-display" style={{ fontSize: 32, lineHeight: 1.05, margin: 0, color: 'var(--text)' }}>
-              Masuk ke Kupiku
+              Buat Akun
             </h2>
             <p style={{
               fontSize: 13, lineHeight: 1.6, color: 'var(--text-muted)',
               marginTop: 12, marginBottom: 28
             }}>
-              Masukkan email dan password anda, atau gunakan Google.
+              Isi form berikut untuk mendaftar sebagai member Kupiku.
             </p>
 
-            {/* Email + Password form */}
-            <form onSubmit={handleLogin} style={{ display: 'grid', gap: 10 }}>
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="Email"
-                required
-                style={{
-                  padding: '10px 12px', borderRadius: 10,
-                  border: '1px solid var(--line-strong)',
-                  background: 'var(--surface)', color: 'var(--text)',
-                  fontSize: 13, outline: 'none'
-                }}
-              />
-              <input
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="Password"
-                required
-                style={{
-                  padding: '10px 12px', borderRadius: 10,
-                  border: '1px solid var(--line-strong)',
-                  background: 'var(--surface)', color: 'var(--text)',
-                  fontSize: 13, outline: 'none'
-                }}
-              />
+            <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 12 }}>
+              <div>
+                <input
+                  type="text"
+                  value={form.name}
+                  onChange={e => set('name', e.target.value)}
+                  placeholder="Nama lengkap"
+                  style={inputStyle('name')}
+                />
+                {errors.name && (
+                  <div style={{ fontSize: 11, color: 'rgba(220,100,100,0.9)', marginTop: 4 }}>
+                    {errors.name}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={e => set('email', e.target.value)}
+                  placeholder="Email"
+                  style={inputStyle('email')}
+                />
+                {errors.email && (
+                  <div style={{ fontSize: 11, color: 'rgba(220,100,100,0.9)', marginTop: 4 }}>
+                    {errors.email}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <input
+                  type="password"
+                  value={form.password}
+                  onChange={e => set('password', e.target.value)}
+                  placeholder="Password (minimal 8 karakter)"
+                  style={inputStyle('password')}
+                />
+                {errors.password && (
+                  <div style={{ fontSize: 11, color: 'rgba(220,100,100,0.9)', marginTop: 4 }}>
+                    {errors.password}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <input
+                  type="password"
+                  value={form.password_confirmation}
+                  onChange={e => set('password_confirmation', e.target.value)}
+                  placeholder="Konfirmasi password"
+                  style={inputStyle('password_confirmation')}
+                />
+                {errors.password_confirmation && (
+                  <div style={{ fontSize: 11, color: 'rgba(220,100,100,0.9)', marginTop: 4 }}>
+                    {errors.password_confirmation}
+                  </div>
+                )}
+              </div>
+
               <button
                 type="submit"
                 className="kp-btn"
                 disabled={status === 'loading'}
                 style={{ width: '100%', marginTop: 4, opacity: status === 'loading' ? 0.6 : 1 }}
               >
-                {status === 'loading' ? 'Masuk…' : 'Masuk'}
+                {status === 'loading' ? 'Mendaftar…' : 'Daftar Sekarang'}
               </button>
             </form>
-
-            {/* Divider */}
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 12,
-              margin: '22px 0',
-            }}>
-              <div style={{ flex: 1, height: 1, background: 'var(--line)' }} />
-              <span className="kp-mono" style={{
-                fontSize: 10, color: 'var(--text-dim)',
-                letterSpacing: '0.08em', textTransform: 'uppercase'
-              }}>atau</span>
-              <div style={{ flex: 1, height: 1, background: 'var(--line)' }} />
-            </div>
-
-            {/* Google button */}
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              {googleClientId ? (
-                <GoogleLogin
-                  onSuccess={handleGoogleLogin}
-                  onError={() => toast('Login Google gagal. Coba lagi.', 'warn')}
-                  width="348"
-                  text="signin_with"
-                  shape="rectangular"
-                  theme="filled_black"
-                />
-              ) : (
-                <div style={{ color: 'var(--text-muted)', fontSize: 12, textAlign: 'center' }}>
-                  Google Sign-in tidak terkonfigurasi.
-                </div>
-              )}
-            </div>
 
             {/* Footer */}
             <div style={{
@@ -249,19 +239,19 @@ export default function Login() {
               display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center'
             }}>
               <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                Belum punya akun?{' '}
+                Sudah punya akun?{' '}
                 <Link
-                  to="/register"
+                  to="/login"
                   style={{ color: 'var(--brown-3)', textDecoration: 'none', fontWeight: 500 }}
                 >
-                  Daftar sekarang
+                  Masuk di sini
                 </Link>
               </div>
               <div style={{
                 fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text-dim)',
                 letterSpacing: '0.08em', textTransform: 'uppercase'
               }}>
-                Google OAuth · Kupiku Auth · v1.5.0
+                Kupiku · MMXXIV · Brewed in Bandung
               </div>
             </div>
           </div>
@@ -276,7 +266,7 @@ export default function Login() {
         letterSpacing: '0.08em', textTransform: 'uppercase',
         position: 'relative', zIndex: 1
       }}>
-        <span>BY SIGNING IN, YOU AGREE TO OUR TERMS</span>
+        <span>WITH REGISTRATION, YOU AGREE TO OUR TERMS</span>
         <span>EST · KUPIKU · MMXXIV</span>
         <span>BREWED IN BANDUNG</span>
       </div>

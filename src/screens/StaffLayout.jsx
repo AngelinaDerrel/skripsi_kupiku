@@ -1,13 +1,18 @@
 import React from 'react';
+import { createContext, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import NavIcon from '../components/NavIcon.jsx';
 
 const NAV = [
   { id: 'orders', label: 'Orders', icon: 'ticket' },
+  { id: 'stok-masuk', label: 'Stok Masuk', icon: 'box' },
   { id: 'stock', label: 'Stock Opname', icon: 'box' },
 ];
 
+export const StaffSearchContext = createContext({ search: '', setSearch: () => {} });
+
 export default function StaffLayout({ children }) {
+  const [search, setSearch] = useState('');
   const nav = useNavigate();
   const loc = useLocation();
 
@@ -79,16 +84,16 @@ export default function StaffLayout({ children }) {
 
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <div style={{
-              display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 8,
-              background: 'var(--surface)', border: '1px solid var(--line)', width: 260
-            }}>
+                display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 8,
+                background: 'var(--surface)', border: '1px solid var(--line)', width: 260
+              }}>
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                 <circle cx="6" cy="6" r="4" stroke="var(--text-muted)" strokeWidth="1.4" />
                 <path d="M9 9l3 3" stroke="var(--text-muted)" strokeWidth="1.4" strokeLinecap="round" />
               </svg>
-              <input placeholder="Search here..." style={{
-                flex: 1, border: 'none', outline: 'none', background: 'transparent', color: 'var(--text-muted)', fontSize: 13
-              }} />
+                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search here..." style={{
+                  flex: 1, border: 'none', outline: 'none', background: 'transparent', color: 'var(--text-muted)', fontSize: 13
+                }} />
               <span className="kp-mono" style={{ fontSize: 10, color: 'var(--text-dim)', border: '1px solid var(--line-strong)', padding: '1px 5px', borderRadius: 4 }}>⌘K</span>
             </div>
 
@@ -101,7 +106,9 @@ export default function StaffLayout({ children }) {
           </div>
         </div>
 
-        {children}
+        <StaffSearchContext.Provider value={{ search, setSearch }}>
+          {children}
+        </StaffSearchContext.Provider>
       </main>
     </div>
   );

@@ -9,17 +9,22 @@ import Dashboard from './screens/Dashboard.jsx';
 import Staff from './screens/Staff.jsx';
 import StaffOrders from './screens/StaffOrders.jsx';
 import StockOpname from './screens/StockOpname.jsx';
+import StokMasuk from './screens/StokMasuk.jsx';
 import Login from './screens/Login.jsx';
+import Register from './screens/Register.jsx';
 import OrderSummary from './screens/OrderSummary.jsx';
 import OrderConfirm from './screens/OrderConfirm.jsx';
 import OrderTracking from './screens/OrderTracking.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
+import { ToastProvider } from './components/Toast.jsx';
 
 export default function App() {
   return (
+    <ToastProvider>
     <Routes>
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
       <Route path="/mood" element={<ProtectedRoute><MoodSelection /></ProtectedRoute>} />
       <Route path="/preferences" element={<ProtectedRoute><PreferenceFlow /></ProtectedRoute>} />
       <Route path="/results" element={<ProtectedRoute><Results /></ProtectedRoute>} />
@@ -27,12 +32,14 @@ export default function App() {
       <Route path="/order" element={<ProtectedRoute><OrderSummary /></ProtectedRoute>} />
       <Route path="/order/confirm" element={<ProtectedRoute><OrderConfirm /></ProtectedRoute>} />
       <Route path="/track" element={<ProtectedRoute><OrderTracking /></ProtectedRoute>} />
-      <Route path="/admin" element={<ProtectedRoute role="admin"><Dashboard /></ProtectedRoute>} />
-      <Route path="/admin/stock" element={<ProtectedRoute role="admin"><StockOpname layout="admin" /></ProtectedRoute>} />
+      <Route path="/admin" element={<ProtectedRoute role={["admin","owner"]}><Dashboard /></ProtectedRoute>} />
+      <Route path="/admin/stock" element={<ProtectedRoute role={["admin","owner"]}><StockOpname layout="admin" /></ProtectedRoute>} />
       <Route path="/admin/staff" element={<ProtectedRoute role={["admin","owner"]}><Staff /></ProtectedRoute>} />
       <Route path="/staff" element={<ProtectedRoute role="staff"><StaffOrders /></ProtectedRoute>} />
       <Route path="/staff/orders" element={<ProtectedRoute role="staff"><StaffOrders /></ProtectedRoute>} />
+      <Route path="/staff/stok-masuk" element={<ProtectedRoute role="staff"><StokMasuk /></ProtectedRoute>} />
       <Route path="/staff/stock" element={<ProtectedRoute role="staff"><StockOpname /></ProtectedRoute>} />
     </Routes>
+    </ToastProvider>
   );
 }

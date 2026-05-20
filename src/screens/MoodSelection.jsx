@@ -113,8 +113,6 @@ export default function MoodSelection() {
           <div style={{ marginTop: 20 }}>
             <div className="kp-eyebrow" style={{ fontSize: 10 }}>Selected mood</div>
             <div style={{ fontSize: 16, marginTop: 8 }}>{current.name}</div>
-            {loading && <div className="kp-mono" style={{ fontSize: 12, color: 'var(--text-muted)' }}>Loading moods...</div>}
-            {error && <div style={{ fontSize: 13, color: 'red' }}>Error: {error}</div>}
           </div>
 
           <div style={{ marginTop: 16 }}>
