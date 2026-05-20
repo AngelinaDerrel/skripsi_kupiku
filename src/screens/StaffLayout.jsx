@@ -13,6 +13,7 @@ export const StaffSearchContext = createContext({ search: '', setSearch: () => {
 
 export default function StaffLayout({ children }) {
   const [search, setSearch] = useState('');
+  const [isLogoutOpen, setIsLogoutOpen] = useState(false);
   const nav = useNavigate();
   const loc = useLocation();
 
@@ -27,14 +28,20 @@ export default function StaffLayout({ children }) {
     }
   } catch {}
 
+  function handleLogout() {
+    localStorage.removeItem('kupiku_user');
+    localStorage.removeItem('kupiku_token');
+    nav('/');
+  }
+
   return (
     <div className="kp" style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       <aside style={{
         width: 232, flex: 'none', background: '#0B0B0B',
         borderRight: '1px solid var(--line)', padding: '22px 14px',
-        display: 'flex', flexDirection: 'column'
+        display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 8px 22px', cursor: 'pointer' }} onClick={() => nav('/')}> 
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 8px 22px', cursor: 'pointer' }} onClick={() => nav('/')}>
           <div>
             <div style={{ fontWeight: 600, fontSize: 14 }}>Kupiku Coffee</div>
             <div className="kp-mono" style={{ fontSize: 10, color: 'var(--text-muted)' }}>Staff Portal</div>
@@ -44,7 +51,9 @@ export default function StaffLayout({ children }) {
         <div className="kp-eyebrow" style={{ padding: '4px 8px', fontSize: 10 }}>Workspace</div>
         <nav style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 2 }}>
           {NAV.map((item) => {
-            const active = loc.pathname.includes(item.id);
+            const active = item.id === 'profile'
+              ? loc.pathname === '/staff/profile'
+              : loc.pathname.includes(item.id);
             return (
               <div key={item.id} onClick={() => nav(`/staff/${item.id}`)} style={{
                 display: 'flex', alignItems: 'center', gap: 12,
@@ -52,7 +61,7 @@ export default function StaffLayout({ children }) {
                 background: active ? 'rgba(107,79,58,0.18)' : 'transparent',
                 border: active ? '1px solid rgba(107,79,58,0.3)' : '1px solid transparent',
                 color: active ? 'var(--text)' : 'var(--text-muted)',
-                fontSize: 13, cursor: 'pointer'
+                fontSize: 13, cursor: 'pointer',
               }}>
                 <NavIcon name={item.icon} active={active} />
                 <span style={{ flex: 1 }}>{item.label}</span>
@@ -63,7 +72,22 @@ export default function StaffLayout({ children }) {
 
         <div style={{ flex: 1 }} />
 
-        <div style={{ marginTop: 14, padding: 12, borderRadius: 10, background: 'var(--surface)', border: '1px solid var(--line)' }}>
+        <button
+          type="button"
+          onClick={() => setIsLogoutOpen(true)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 12,
+            padding: '9px 10px', borderRadius: 8,
+            background: 'transparent', border: '1px solid transparent',
+            color: 'var(--text-muted)', fontSize: 13, cursor: 'pointer',
+            textAlign: 'left', marginBottom: 10,
+          }}
+        >
+          <NavIcon name="logout" />
+          <span>Logout</span>
+        </button>
+
+        <div style={{ padding: 12, borderRadius: 10, background: 'var(--surface)', border: '1px solid var(--line)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--good)', boxShadow: '0 0 0 3px rgba(122,143,106,0.18)' }} />
             <span className="kp-mono" style={{ fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>ON DUTY</span>
@@ -75,7 +99,7 @@ export default function StaffLayout({ children }) {
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
         <div style={{
           padding: '18px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          borderBottom: '1px solid var(--line)'
+          borderBottom: '1px solid var(--line)',
         }}>
           <div>
             <div className="kp-eyebrow" style={{ fontSize: 10 }}>Staff Portal</div>
@@ -84,25 +108,30 @@ export default function StaffLayout({ children }) {
 
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <div style={{
-                display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 8,
-                background: 'var(--surface)', border: '1px solid var(--line)', width: 260
-              }}>
+              display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 8,
+              background: 'var(--surface)', border: '1px solid var(--line)', width: 260,
+            }}>
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                 <circle cx="6" cy="6" r="4" stroke="var(--text-muted)" strokeWidth="1.4" />
                 <path d="M9 9l3 3" stroke="var(--text-muted)" strokeWidth="1.4" strokeLinecap="round" />
               </svg>
-                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search here..." style={{
-                  flex: 1, border: 'none', outline: 'none', background: 'transparent', color: 'var(--text-muted)', fontSize: 13
-                }} />
+              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search here..." style={{
+                flex: 1, border: 'none', outline: 'none', background: 'transparent', color: 'var(--text-muted)', fontSize: 13,
+              }} />
               <span className="kp-mono" style={{ fontSize: 10, color: 'var(--text-dim)', border: '1px solid var(--line-strong)', padding: '1px 5px', borderRadius: 4 }}>⌘K</span>
             </div>
 
-            <div style={{
-              width: 32, height: 32, borderRadius: '50%',
-              background: 'linear-gradient(135deg, #6B4F3A, #2B2010)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 12, fontWeight: 600, color: 'var(--text)'
-            }}>{initials}</div>
+            <div
+              onClick={() => nav('/staff/profile')}
+              style={{
+                width: 32, height: 32, borderRadius: '50%',
+                background: 'linear-gradient(135deg, #6B4F3A, #2B2010)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 12, fontWeight: 600, color: 'var(--text)', cursor: 'pointer',
+              }}
+            >
+              {initials}
+            </div>
           </div>
         </div>
 
@@ -110,6 +139,44 @@ export default function StaffLayout({ children }) {
           {children}
         </StaffSearchContext.Provider>
       </main>
+
+      {isLogoutOpen && (
+        <div
+          role="presentation"
+          onClick={() => setIsLogoutOpen(false)}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(8,10,12,0.55)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 60, padding: 16,
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: 'min(480px, 100%)', background: 'var(--surface)',
+              border: '1px solid var(--line)', borderRadius: 16, padding: 22,
+              boxShadow: '0 30px 60px rgba(0,0,0,0.45)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div>
+                <div className="kp-eyebrow" style={{ fontSize: 10 }}>Konfirmasi</div>
+                <h2 style={{ margin: '6px 0 0', fontSize: 18 }}>Yakin akan logout?</h2>
+              </div>
+              <button className="kp-btn kp-btn-ghost" onClick={() => setIsLogoutOpen(false)}>Tutup</button>
+            </div>
+            <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>
+              Kamu akan keluar dari akun staff dan kembali ke halaman utama.
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 18 }}>
+              <button className="kp-btn kp-btn-ghost" onClick={() => setIsLogoutOpen(false)}>Batal</button>
+              <button className="kp-btn" onClick={handleLogout}>Iya, logout</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

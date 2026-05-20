@@ -53,5 +53,22 @@ export default function NavIcon({ name, active }) {
       <circle cx="8" cy="11.5" r="0.6" fill={c} />
     </svg>
   );
+  if (name === 'chart') return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path d="M2 12h12M4 12V8M7.5 12V4.5M11 12V2" stroke={c} strokeWidth={sw} strokeLinecap="round" />
+    </svg>
+  );
+  if (name === 'user') return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <circle cx="8" cy="5.5" r="2.5" stroke={c} strokeWidth={sw} />
+      <path d="M3 13c0-2.5 2.2-4.5 5-4.5s5 2 5 4.5" stroke={c} strokeWidth={sw} strokeLinecap="round" />
+    </svg>
+  );
+  if (name === 'logout') return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path d="M6 3H3a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h3" stroke={c} strokeWidth={sw} strokeLinecap="round" />
+      <path d="M10 11l3-3-3-3M13 8H6" stroke={c} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
   return null;
 }

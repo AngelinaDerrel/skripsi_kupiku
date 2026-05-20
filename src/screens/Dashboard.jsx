@@ -1,6 +1,6 @@
 import React from 'react';
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import AdminLayout from '../components/AdminLayout.jsx';
 import api from '../lib/api.js';
 
@@ -136,6 +136,10 @@ function Dropdown({ value, onChange, options, placeholder, style, searchable = f
 
 export default function Dashboard() {
   const loc = useLocation();
+  const nav = useNavigate();
+
+  const storedUser = (() => { try { return JSON.parse(localStorage.getItem('kupiku_user') || '{}'); } catch { return {}; } })();
+  const userInitials = (storedUser?.name || 'U').split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase();
   const [category, setCategory] = useState('all');
   const [showAll, setShowAll] = useState(false);
   const [menuItems, setMenuItems] = useState([]);
@@ -535,12 +539,16 @@ export default function Dashboard() {
             </div>
             {/* <button className="kp-btn kp-btn-sm kp-btn-ghost">Export CSV</button> */}
             <button className="kp-btn kp-btn-sm" onClick={openNewDrinkModal}>+ New drink</button>
-            <div style={{
-              width: 32, height: 32, borderRadius: '50%',
-              background: 'linear-gradient(135deg, #6B4F3A, #2B2010)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 12, fontWeight: 600, marginLeft: 8
-            }}>RA</div>
+            <div
+              onClick={() => nav('/admin/profile')}
+              title="Profil saya"
+              style={{
+                width: 32, height: 32, borderRadius: '50%',
+                background: 'linear-gradient(135deg, #6B4F3A, #2B2010)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 12, fontWeight: 600, marginLeft: 8, cursor: 'pointer',
+              }}
+            >{userInitials}</div>
           </div>
         </div>
 

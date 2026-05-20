@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import NavIcon from './NavIcon.jsx';
 
-const NAV = [
+const BASE_NAV = [
   { id: 'menu', label: 'Menu', icon: 'cup', path: '/admin' },
   { id: 'stock', label: 'Stock', icon: 'box', path: '/admin/stock' },
   { id: 'staff', label: 'Staff', icon: 'people', path: '/admin/staff' },
@@ -12,6 +12,14 @@ const NAV = [
 export default function AdminLayout({ children }) {
   const nav = useNavigate();
   const loc = useLocation();
+
+  const userRole = (() => {
+    try { return JSON.parse(localStorage.getItem('kupiku_user') || '{}')?.role; } catch { return null; }
+  })();
+
+  const NAV = userRole === 'owner'
+    ? [...BASE_NAV, { id: 'laporan', label: 'Laporan', icon: 'chart', path: '/owner/laporan' }]
+    : BASE_NAV;
   const [isLogoutOpen, setIsLogoutOpen] = useState(false);
 
   function handleBrandClick() {
