@@ -107,7 +107,6 @@ export default function Login() {
       }} />
 
       <PublicNavbar
-        active="discover"
         onMoodClick={() => nav('/login', { state: { next: '/mood' } })}
         onAdminClick={() => nav('/login', { state: { next: '/admin' } })}
         onOrderClick={() => nav('/login')}

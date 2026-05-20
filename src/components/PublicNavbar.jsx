@@ -7,7 +7,6 @@ export default function PublicNavbar({
   onDiscoverClick,
   onMenuClick,
   onMoodClick,
-  onLocationsClick,
   onAdminClick,
   onOrderClick,
   showAdmin = true,
@@ -15,7 +14,15 @@ export default function PublicNavbar({
 }) {
   const nav = useNavigate();
   const loc = useLocation();
-  const activeKey = active || (loc.pathname === '/menu' ? 'menu' : 'discover');
+  const pathname = loc.pathname || '';
+  let activeKey = active;
+  if (!activeKey) {
+    if (pathname === '/') activeKey = 'discover';
+    else if (pathname.startsWith('/menu')) activeKey = 'menu';
+    else if (pathname.startsWith('/mood')) activeKey = 'mood';
+    else if (pathname.startsWith('/track')) activeKey = 'track';
+    else activeKey = '';
+  }
 
   function handleDiscover() {
     if (onDiscoverClick) return onDiscoverClick();
@@ -32,16 +39,6 @@ export default function PublicNavbar({
     nav('/mood');
   }
 
-  function handleLocations() {
-    if (onLocationsClick) return onLocationsClick();
-    if (loc.pathname === '/') {
-      const el = document.getElementById('maps');
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      return;
-    }
-    nav('/#maps');
-  }
-
   function handleAdmin() {
     if (onAdminClick) return onAdminClick();
     nav('/login', { state: { next: '/admin' } });
@@ -50,6 +47,10 @@ export default function PublicNavbar({
   function handleOrder() {
     if (onOrderClick) return onOrderClick();
     nav('/login');
+  }
+
+  function handleTrack() {
+    nav('/track');
   }
 
   return (
@@ -68,29 +69,38 @@ export default function PublicNavbar({
         </div>
       </div>
       <div style={{ display: 'flex', gap: 36, fontSize: 13, color: 'var(--text-muted)' }}>
-        <span
-          style={{ color: activeKey === 'discover' ? 'var(--text)' : 'inherit', cursor: 'pointer' }}
-          onClick={handleDiscover}
-        >
-          Discover
-        </span>
-        <span
-          style={{ color: activeKey === 'menu' ? 'var(--text)' : 'inherit', cursor: 'pointer' }}
-          onClick={handleMenu}
-        >
-          Menu
-        </span>
-        <span
-          style={{ color: activeKey === 'mood' ? 'var(--text)' : 'inherit', cursor: 'pointer' }}
-          onClick={handleMood}
-        >
-          Mood
-        </span>
-        <span style={{ cursor: 'pointer' }} onClick={handleLocations}>Locations</span>
+        {/** Small NavItem to handle hover + active styling */}
+        {(() => {
+          function NavItem({ children, active, onClick }) {
+            const [hover, setHover] = React.useState(false);
+            const defaultColor = 'var(--text-muted)';
+            const activeColor = 'var(--text)';
+            const style = { color: active ? activeColor : (hover ? activeColor : defaultColor), cursor: 'pointer' };
+            return (
+              <span
+                style={style}
+                onClick={onClick}
+                onMouseEnter={() => setHover(true)}
+                onMouseLeave={() => setHover(false)}
+              >
+                {children}
+              </span>
+            );
+          }
+
+          return (
+            <>
+              <NavItem active={activeKey === 'discover'} onClick={handleDiscover}>Discover</NavItem>
+              <NavItem active={activeKey === 'menu'} onClick={handleMenu}>Menu</NavItem>
+              <NavItem active={activeKey === 'mood'} onClick={handleMood}>Mood</NavItem>
+              <NavItem active={activeKey === 'track'} onClick={handleTrack}>Track Order</NavItem>
+            </>
+          );
+        })()}
       </div>
       <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
         {showAdmin && (
-          <span style={{ fontSize: 13, color: 'var(--text-muted)', cursor: 'pointer' }} onClick={handleAdmin}>Admin</span>
+          <span style={{ fontSize: 13, color: 'var(--text-muted)', cursor: 'pointer' }} onClick={handleAdmin}>Sign in</span>
         )}
         {showOrder && (
           <button className="kp-btn kp-btn-sm" onClick={handleOrder}>Order</button>

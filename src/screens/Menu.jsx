@@ -3,9 +3,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../lib/api.js';
 import PublicNavbar from '../components/PublicNavbar.jsx';
+import CustomizationModal from '../components/CustomizationModal.jsx';
+import CartDrawer from '../components/CartDrawer.jsx';
+import { useCart } from '../context/CartContext.jsx';
 
 export default function Menu() {
   const nav = useNavigate();
+  const { items: cartItems, addToCart } = useCart();
+
   const [filter, setFilter] = useState('all');
   const [hovered, setHovered] = useState(null);
   const [menuItems, setMenuItems] = useState([]);
@@ -13,11 +18,25 @@ export default function Menu() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const [customizationItem, setCustomizationItem] = useState(null);
+  const [cartOpen, setCartOpen] = useState(false);
+
+  const cartCount = cartItems.length;
+
+  function getUser() {
+    try { return JSON.parse(localStorage.getItem('kupiku_user') || ''); } catch { return null; }
+  }
+
+  function handleAddClick(item) {
+    if (!getUser()) {
+      nav('/login', { state: { next: '/menu' } });
+      return;
+    }
+    setCustomizationItem(item);
+  }
+
   const normalizeCategoryId = (value) =>
-    String(value || '')
-      .trim()
-      .toLowerCase()
-      .replace(/\s+/g, '-');
+    String(value || '').trim().toLowerCase().replace(/\s+/g, '-');
 
   const pickString = (source, keys = []) => {
     if (typeof source === 'string') return source;
@@ -89,10 +108,7 @@ export default function Menu() {
 
   const getRecipeItems = (value) => {
     if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean);
-    return String(value || '')
-      .split(',')
-      .map((item) => item.trim())
-      .filter(Boolean);
+    return String(value || '').split(',').map((item) => item.trim()).filter(Boolean);
   };
 
   return (
@@ -102,7 +118,10 @@ export default function Menu() {
         onMoodClick={() => nav('/mood')}
         onLocationsClick={() => nav('/#maps')}
         onAdminClick={() => nav('/login')}
-        onOrderClick={() => nav('/login')}
+        onOrderClick={() => {
+          if (getUser()) setCartOpen(true);
+          else nav('/login', { state: { next: '/menu' } });
+        }}
       />
 
       {/* Header */}
@@ -134,41 +153,6 @@ export default function Menu() {
         </div>
       </div>
 
-      {/* Featured strip */}
-      <div style={{ padding: '0 56px 40px' }}>
-        {/* <div className="kp-card" style={{
-          display: 'grid', gridTemplateColumns: '1.1fr 1fr', overflow: 'hidden',
-          boxShadow: 'var(--shadow)',
-          background: 'linear-gradient(110deg, var(--surface), rgba(107,79,58,0.08))'
-        }}>
-          <div style={{ padding: 40, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <div>
-              <span className="kp-chip" style={{ background: 'rgba(168,131,95,0.18)', color: 'var(--brown-3)' }}>★ SIGNATURE</span>
-              <h2 className="kp-display" style={{ fontSize: 42, lineHeight: 1.02, margin: '18px 0 10px' }}>
-                {featured.name}
-              </h2>
-              <p style={{ color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.6, maxWidth: 420, margin: 0 }}>
-                {featured.desc} A slow brew for unhurried mornings — paired with calm.
-              </p>
-              <div style={{ display: 'flex', gap: 10, marginTop: 20, flexWrap: 'wrap' }}>
-                {featured.notes.map((n) => (
-                  <span key={n} className="kp-mono" style={{
-                    fontSize: 10, padding: '4px 10px',
-                    border: '1px solid var(--line-strong)', borderRadius: 999,
-                    color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em'
-                  }}>{n}</span>
-                ))}
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: 12, marginTop: 28, alignItems: 'center' }}>
-              <button className="kp-btn">Add to cart · IDR {featured.price}k</button>
-              <button className="kp-btn kp-btn-ghost kp-btn-sm">Tasting notes</button>
-            </div>
-          </div>
-          <div className="kp-img-placeholder" data-label="DRINK · CEDAR POUR-OVER" style={{ borderRadius: 0, minHeight: 320 }} />
-        </div> */}
-      </div>
-
       {/* Filter pills */}
       <div style={{
         padding: '8px 56px 24px', display: 'flex', alignItems: 'center', gap: 8,
@@ -194,7 +178,7 @@ export default function Menu() {
       </div>
 
       {/* Grid */}
-      <div style={{ padding: '0 56px 56px' }}>
+      <div style={{ padding: '0 56px 120px' }}>
         {error && (
           <div style={{
             marginBottom: 18, padding: '10px 14px',
@@ -231,28 +215,33 @@ export default function Menu() {
                     <h4 style={{ fontSize: 18, margin: 0, fontWeight: 500, letterSpacing: '-0.01em' }}>{d.name}</h4>
                     <span className="kp-mono" style={{ fontSize: 13, color: 'var(--text)', whiteSpace: 'nowrap' }}>Rp {formatPrice(d.price)}</span>
                   </div>
-                  {getRecipeItems(d.recipe).length > 0 && (
-                    <div style={{
-                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                      marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--line)'
-                    }}>
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                        {getRecipeItems(d.recipe).slice(0, 4).map((item) => (
-                          <span key={item} className="kp-mono" style={{
-                            fontSize: 10, color: 'var(--text-muted)',
-                            textTransform: 'uppercase', letterSpacing: '0.05em'
-                          }}>· {item}</span>
-                        ))}
-                      </div>
-                      <span style={{
-                        width: 26, height: 26, borderRadius: '50%',
-                        background: isHover ? 'var(--brown)' : 'var(--surface-2)',
-                        border: '1px solid var(--line-strong)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 14, transition: 'background 200ms ease'
-                      }}>+</span>
+                  <div style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--line)'
+                  }}>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      {getRecipeItems(d.recipe).slice(0, 3).map((item) => (
+                        <span key={item} className="kp-mono" style={{
+                          fontSize: 10, color: 'var(--text-muted)',
+                          textTransform: 'uppercase', letterSpacing: '0.05em'
+                        }}>· {item}</span>
+                      ))}
                     </div>
-                  )}
+                    {/* Add to cart button */}
+                    <button
+                      onClick={() => handleAddClick(d)}
+                      title="Tambah ke cart"
+                      style={{
+                        width: 30, height: 30, borderRadius: '50%',
+                        background: isHover ? 'var(--brown)' : 'var(--surface-2)',
+                        border: '1px solid ' + (isHover ? 'rgba(168,131,95,0.4)' : 'var(--line-strong)'),
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 16, color: isHover ? 'var(--text)' : 'var(--text-muted)',
+                        cursor: 'pointer', transition: 'all 200ms ease',
+                        flexShrink: 0,
+                      }}
+                    >+</button>
+                  </div>
                 </div>
               </div>
             );
@@ -278,6 +267,55 @@ export default function Menu() {
           </button>
         </div>
       </div>
+
+      {/* Floating cart button */}
+      {cartCount > 0 && (
+        <button
+          onClick={() => {
+            if (getUser()) setCartOpen(true);
+            else nav('/login', { state: { next: '/menu' } });
+          }}
+          style={{
+            position: 'fixed', bottom: 32, right: 32, zIndex: 40,
+            display: 'flex', alignItems: 'center', gap: 10,
+            padding: '14px 22px', borderRadius: 999,
+            background: 'var(--brown)', border: '1px solid rgba(168,131,95,0.3)',
+            color: 'var(--text)', cursor: 'pointer',
+            boxShadow: 'var(--shadow-lg)',
+            fontSize: 14, fontFamily: 'var(--font-sans)', fontWeight: 500,
+            transition: 'all 180ms ease',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--brown-2)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'var(--brown)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+        >
+          <span>Cart</span>
+          <span style={{
+            minWidth: 22, height: 22, borderRadius: '50%',
+            background: 'rgba(255,255,255,0.15)',
+            border: '1px solid rgba(255,255,255,0.2)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600,
+          }}>
+            {cartCount}
+          </span>
+        </button>
+      )}
+
+      {/* Customization modal */}
+      {customizationItem && (
+        <CustomizationModal
+          item={customizationItem}
+          onClose={() => setCustomizationItem(null)}
+          onAdd={(item, customization) => {
+            addToCart(item, customization);
+            setCustomizationItem(null);
+            setCartOpen(true);
+          }}
+        />
+      )}
+
+      {/* Cart drawer */}
+      <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
     </div>
   );
 }

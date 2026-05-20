@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 
 import App from './App.jsx';
+import { CartProvider } from './context/CartContext.jsx';
 
 import './styles/tokens.css';
 import './styles/globals.css';
@@ -13,7 +14,9 @@ const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const app = (
   <React.StrictMode>
     <BrowserRouter>
-      <App />
+      <CartProvider>
+        <App />
+      </CartProvider>
     </BrowserRouter>
   </React.StrictMode>
 );

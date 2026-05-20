@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MOODS } from '../data/moods.js';
 import MoodGlyph from '../components/MoodGlyph.jsx';
-import api from '../lib/api';
 
 export default function MoodSelection() {
   const nav = useNavigate();
@@ -19,34 +18,11 @@ export default function MoodSelection() {
     }
   }, []);
 
-  const [moodsList, setMoodsList] = useState(MOODS);
+  const [moodsList] = useState(MOODS);
   const [active, setActive] = useState(MOODS[0]?.id || null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
 
   const current =
     moodsList.find((m) => m.id === active) || MOODS[0];
-
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      setLoading(true);
-      setError(null);
-      try {
-        const data = await api.get('/moods');
-        if (!cancelled && Array.isArray(data) && data.length) {
-          setMoodsList(data);
-          setActive(data[0].id || data[0].name || data[0].slug);
-        }
-      } catch (err) {
-        if (!cancelled) setError(err.message || 'Failed to load moods');
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-    load();
-    return () => { cancelled = true; };
-  }, []);
 
   return (
     <div className="kp" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
