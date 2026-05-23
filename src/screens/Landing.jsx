@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import Map from '../components/Map';
 import PublicNavbar from '../components/PublicNavbar.jsx';
+import cupImage from '../assets/cup.jpg';
 
 export default function Landing() {
   const nav = useNavigate();
@@ -77,27 +78,27 @@ export default function Landing() {
 
         <div style={{ position: 'relative', height: 520 }}>
           <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 60% 40%, rgba(107,79,58,0.22), transparent 55%)' }} />
-          <div style={{
-            position: 'absolute', top: 40, right: 20, width: 380, height: 380, borderRadius: '50%',
-            background: 'radial-gradient(circle at 35% 30%, #2B2010, #15100A 60%, #0A0805)',
-            border: '1px solid var(--line-strong)',
-            boxShadow: 'var(--shadow-lg), inset 0 8px 32px rgba(0,0,0,0.6)',
-          }}>
+          <div style={{ position: 'absolute', top: 16, right: 6, width: 440, height: 440 }}>
             <div style={{
-              position: 'absolute', inset: 28, borderRadius: '50%',
-              background: 'radial-gradient(ellipse at 30% 25%, rgba(168,131,95,0.35), rgba(74,53,39,0.6) 50%, rgba(20,14,9,0.9))',
-              boxShadow: 'inset 0 0 80px rgba(0,0,0,0.5)'
-            }} />
-            <div style={{ position: 'absolute', top: -30, left: '50%', display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center', opacity: 0.4 }}>
-              <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--text-muted)' }} />
-              <div style={{ width: 3, height: 3, borderRadius: '50%', background: 'var(--text-muted)' }} />
-              <div style={{ width: 2, height: 2, borderRadius: '50%', background: 'var(--text-muted)' }} />
+              width: '100%', height: '100%',
+              borderRadius: 24,
+              overflow: 'hidden',
+              border: '1px solid var(--line-strong)',
+              boxShadow: 'var(--shadow-lg)'
+            }}>
+              <img
+                src={cupImage}
+                alt="Kupiku coffee cup"
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              />
             </div>
           </div>
 
           <div className="kp-card" style={{ position: 'absolute', top: 70, left: 0, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12, boxShadow: 'var(--shadow)', backdropFilter: 'blur(8px)' }}>
             <div style={{ width: 36, height: 36, borderRadius: 8, background: 'rgba(107,79,58,0.2)', border: '1px solid rgba(107,79,58,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ width: 14, height: 14, borderRadius: '50%', border: '1.5px solid var(--brown-3)' }} />
+              <div style={{ width: 18, height: 12, borderRadius: '0 0 8px 8px', background: 'rgba(168,131,95,0.5)', position: 'relative' }}>
+                <div style={{ position: 'absolute', right: -6, top: 2, width: 8, height: 8, borderRadius: '50%', border: '1.5px solid rgba(168,131,95,0.8)' }} />
+              </div>
             </div>
             <div>
               <div className="kp-eyebrow" style={{ fontSize: 9 }}>mood · calm</div>
@@ -107,7 +108,9 @@ export default function Landing() {
 
           <div className="kp-card" style={{ position: 'absolute', bottom: 80, right: 30, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12, boxShadow: 'var(--shadow)' }}>
             <div style={{ width: 36, height: 36, borderRadius: 8, background: 'rgba(197,139,90,0.15)', border: '1px solid rgba(197,139,90,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ width: 12, height: 12, background: 'var(--brown-2)', borderRadius: 2 }} />
+              <div style={{ width: 18, height: 12, borderRadius: '0 0 8px 8px', background: 'rgba(197,139,90,0.55)', position: 'relative' }}>
+                <div style={{ position: 'absolute', right: -6, top: 2, width: 8, height: 8, borderRadius: '50%', border: '1.5px solid rgba(197,139,90,0.85)' }} />
+              </div>
             </div>
             <div>
               <div className="kp-eyebrow" style={{ fontSize: 9 }}>mood · stressed</div>

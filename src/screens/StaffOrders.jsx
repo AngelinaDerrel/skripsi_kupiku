@@ -19,7 +19,7 @@ function fmtTime(ts) {
 }
 function fmtDate(ts) {
   if (!ts) return '';
-  return new Date(ts).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+  return new Date(ts).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 function fmtRp(val) {
   return 'Rp ' + Number(val).toLocaleString('id-ID');
@@ -29,6 +29,10 @@ function printNota(order) {
   const timeStr = new Date(order.created_at).toLocaleString('id-ID', {
     day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
   });
+
+  const kasir = (() => {
+    try { return JSON.parse(localStorage.getItem('kupiku_user') || '{}')?.name || '—'; } catch { return '—'; }
+  })();
 
   const rows = (order.items || []).map((item, i) => {
     const tags = [
@@ -69,6 +73,7 @@ function printNota(order) {
   <tr><td>Kode Pesanan</td><td style="text-align:right;font-weight:700;">${order.kode_pesanan}</td></tr>
   <tr><td>Waktu</td><td style="text-align:right;">${timeStr}</td></tr>
   <tr><td>Pelanggan</td><td style="text-align:right;">${order.user?.name || '—'}</td></tr>
+  <tr><td>Kasir</td><td style="text-align:right;">${kasir}</td></tr>
 </table>
 <hr class="sep">
 <table>${rows}</table>
@@ -98,10 +103,251 @@ function Chip({ label, accent, bg }) {
   );
 }
 
-function OrderCard({ order, tabKey, busy, onAction }) {
+// ── Detail Drawer ──────────────────────────────────────────────────────────────
+
+function OrderDetailDrawer({ order, tabKey, busy, onAction, onClose }) {
   const tab = TABS.find(t => t.key === tabKey);
 
-  const handleClick = () => {
+  const actionLabel =
+    tabKey === 'new'     ? 'Konfirmasi Pesanan' :
+    tabKey === 'process' ? 'Tandai Siap' :
+    tabKey === 'ready'   ? 'Sudah Diambil' : null;
+
+  function handleAction() {
+    const next =
+      tabKey === 'new'     ? 'diproses' :
+      tabKey === 'process' ? 'siap' :
+      tabKey === 'ready'   ? 'done' : null;
+    if (next) {
+      onAction(order.kode_pesanan, next);
+      onClose();
+    }
+  }
+
+  function handlePrintAndConfirm() {
+    printNota(order);
+    if (tabKey === 'new') {
+      onAction(order.kode_pesanan, 'diproses');
+      onClose();
+    }
+  }
+
+  // Close on Escape
+  useEffect(() => {
+    function onKey(e) { if (e.key === 'Escape') onClose(); }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  const custRow = (label, val) => (
+    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--line)' }}>
+      <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{label}</span>
+      <span style={{ fontSize: 12, fontWeight: 500 }}>{val}</span>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        style={{
+          position: 'fixed', inset: 0,
+          background: 'rgba(0,0,0,0.55)',
+          zIndex: 1000,
+          backdropFilter: 'blur(2px)',
+        }}
+      />
+
+      {/* Modal */}
+      <div style={{
+        position: 'fixed', top: '50%', left: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: '90%', maxWidth: 520, maxHeight: '88vh',
+        background: 'var(--bg)',
+        border: '1px solid var(--line)',
+        borderRadius: 16,
+        zIndex: 1001,
+        display: 'flex', flexDirection: 'column',
+        boxShadow: '0 24px 64px rgba(0,0,0,0.55)',
+      }}>
+
+        {/* Header */}
+        <div style={{
+          padding: '20px 24px',
+          borderBottom: '1px solid var(--line)',
+          background: tab.bg,
+          display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+        }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+              <div className="kp-mono" style={{ fontSize: 18, fontWeight: 700, color: tab.accent, letterSpacing: '0.1em' }}>
+                {order.kode_pesanan}
+              </div>
+              <span style={{
+                fontSize: 9, padding: '2px 8px', borderRadius: 999,
+                background: tab.bg, border: `1px solid ${tab.accent}66`,
+                color: tab.accent, textTransform: 'uppercase', letterSpacing: '0.06em',
+                fontFamily: 'var(--font-mono)',
+              }}>
+                {TABS.find(t => t.key === tabKey)?.label}
+              </span>
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+              {order.user?.name || 'Pelanggan'}
+            </div>
+            <div className="kp-mono" style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 3 }}>
+              {fmtDate(order.created_at)} · {fmtTime(order.created_at)}
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+              background: 'var(--surface)', border: '1px solid var(--line)',
+              color: 'var(--text-muted)', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 18, fontFamily: 'var(--font-sans)', lineHeight: 1,
+            }}
+          >
+            ×
+          </button>
+        </div>
+
+        {/* Items list */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
+          <div style={{
+            fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase',
+            letterSpacing: '0.08em', marginBottom: 14, fontFamily: 'var(--font-mono)',
+          }}>
+            Detail Item — {order.items?.length || 0} produk
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {(order.items || []).map((item, i) => {
+              const suhuLabel  = SUHU[item.suhu]  || item.suhu  || '—';
+              const gulaLabel  = GULA[item.tingkat_gula]  || item.tingkat_gula  || '—';
+              const esLabel    = item.suhu === 'ice' ? (ES[item.tingkat_es] || item.tingkat_es || '—') : null;
+
+              return (
+                <div key={i} style={{
+                  borderRadius: 10, overflow: 'hidden',
+                  border: '1px solid var(--line)',
+                  background: 'var(--surface)',
+                }}>
+                  {/* Item header stripe */}
+                  <div style={{
+                    padding: '12px 16px',
+                    background: tab.bg,
+                    borderBottom: '1px solid var(--line)',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{
+                        width: 22, height: 22, borderRadius: '50%',
+                        background: tab.accent, color: '#fff',
+                        fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-mono)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                      }}>{i + 1}</span>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
+                        {item.nama_menu}
+                      </span>
+                    </div>
+                    <span className="kp-mono" style={{ fontSize: 13, color: tab.accent, fontWeight: 700 }}>
+                      {fmtRp(item.harga_saat_pesan)}
+                    </span>
+                  </div>
+
+                  {/* Kustomisasi rows */}
+                  <div style={{ padding: '10px 16px' }}>
+                    {custRow('Suhu', suhuLabel)}
+                    {custRow('Tingkat Gula', gulaLabel)}
+                    {esLabel && custRow('Tingkat Es', esLabel)}
+                  </div>
+
+                  {/* Chip row */}
+                  <div style={{ padding: '8px 16px 12px', display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                    <Chip label={suhuLabel} accent={tab.accent} bg={tab.bg} />
+                    <Chip label={gulaLabel} accent={tab.accent} bg={tab.bg} />
+                    {esLabel && <Chip label={esLabel} accent={tab.accent} bg={tab.bg} />}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          padding: '16px 24px', borderTop: '1px solid var(--line)',
+          background: 'var(--surface)',
+        }}>
+          {/* Total row */}
+          <div style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            marginBottom: 14, padding: '10px 14px',
+            background: 'var(--bg)', borderRadius: 8, border: '1px solid var(--line)',
+          }}>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)' }}>
+              Total
+            </span>
+            <span className="kp-mono" style={{ fontSize: 20, fontWeight: 700 }}>
+              {fmtRp(order.total_harga)}
+            </span>
+          </div>
+
+          {/* Action buttons */}
+          <div style={{ display: 'flex', gap: 8 }}>
+            {/* Cetak Nota */}
+            <button
+              onClick={tabKey === 'new' ? handlePrintAndConfirm : () => printNota(order)}
+              style={{
+                flex: 1, padding: '11px 0', borderRadius: 8,
+                background: 'var(--bg)', border: '1px solid var(--line)',
+                color: 'var(--text)', fontSize: 13, fontWeight: 500,
+                cursor: 'pointer', fontFamily: 'var(--font-sans)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <rect x="2" y="5" width="12" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.4"/>
+                <path d="M5 5V3.5A1.5 1.5 0 0 1 6.5 2h3A1.5 1.5 0 0 1 11 3.5V5" stroke="currentColor" strokeWidth="1.4"/>
+                <path d="M5 11h6M5 8.5h3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+              </svg>
+              {tabKey === 'new' ? 'Konfirmasi & Nota' : 'Cetak Nota'}
+            </button>
+
+            {/* Status action */}
+            {actionLabel && tabKey !== 'new' && (
+              <button
+                onClick={handleAction}
+                disabled={busy}
+                style={{
+                  flex: 1, padding: '11px 0', borderRadius: 8,
+                  background: tab.accent, border: 'none',
+                  color: '#fff', fontSize: 13, fontWeight: 500,
+                  cursor: busy ? 'wait' : 'pointer',
+                  opacity: busy ? 0.55 : 1,
+                  fontFamily: 'var(--font-sans)',
+                }}
+              >
+                {busy ? '…' : actionLabel}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ── Order Card ─────────────────────────────────────────────────────────────────
+
+function OrderCard({ order, tabKey, busy, onAction, onDetail }) {
+  const tab = TABS.find(t => t.key === tabKey);
+
+  function handleActionClick(e) {
+    e.stopPropagation();
     if (tabKey === 'new') {
       onAction(order.kode_pesanan, 'diproses');
       printNota(order);
@@ -110,7 +356,7 @@ function OrderCard({ order, tabKey, busy, onAction }) {
     } else if (tabKey === 'ready') {
       onAction(order.kode_pesanan, 'done');
     }
-  };
+  }
 
   const btnLabel =
     tabKey === 'new'     ? 'Konfirmasi & Cetak Nota' :
@@ -118,7 +364,13 @@ function OrderCard({ order, tabKey, busy, onAction }) {
     tabKey === 'ready'   ? 'Sudah Diambil' : null;
 
   return (
-    <div className="kp-card" style={{ padding: 0, overflow: 'hidden' }}>
+    <div
+      className="kp-card"
+      onClick={() => onDetail(order)}
+      style={{ padding: 0, overflow: 'hidden', cursor: 'pointer', transition: 'transform 120ms ease, box-shadow 120ms ease' }}
+      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = `0 6px 24px rgba(0,0,0,0.25), 0 0 0 1px ${tab.accent}44`; }}
+      onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
+    >
       {/* colour stripe */}
       <div style={{ height: 3, background: tab.accent }} />
 
@@ -145,7 +397,7 @@ function OrderCard({ order, tabKey, busy, onAction }) {
 
         <div style={{ height: 1, background: 'var(--line)', marginBottom: 14 }} />
 
-        {/* items */}
+        {/* items summary */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
           {(order.items || []).map((item, i) => {
             const tags = [
@@ -185,7 +437,7 @@ function OrderCard({ order, tabKey, busy, onAction }) {
 
           {btnLabel ? (
             <button
-              onClick={handleClick}
+              onClick={handleActionClick}
               disabled={busy}
               style={{
                 padding: '9px 16px', borderRadius: 999,
@@ -204,10 +456,17 @@ function OrderCard({ order, tabKey, busy, onAction }) {
             </span>
           )}
         </div>
+
+        {/* hint */}
+        <div style={{ marginTop: 10, fontSize: 10, color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', textAlign: 'center' }}>
+          Klik kartu untuk lihat detail
+        </div>
       </div>
     </div>
   );
 }
+
+// ── Main Screen ────────────────────────────────────────────────────────────────
 
 export default function StaffOrders() {
   const [activeTab, setActiveTab]   = useState('new');
@@ -216,6 +475,7 @@ export default function StaffOrders() {
   const [error, setError]           = useState(null);
   const [busy, setBusy]             = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [selectedOrder, setSelectedOrder] = useState(null);
   const timerRef = useRef(null);
 
   const token = localStorage.getItem('kupiku_token');
@@ -379,11 +639,23 @@ export default function StaffOrders() {
                 tabKey={activeTab}
                 busy={busy === order.kode_pesanan}
                 onAction={handleAction}
+                onDetail={setSelectedOrder}
               />
             ))}
           </div>
         )}
       </div>
+
+      {/* ── Detail Drawer ── */}
+      {selectedOrder && (
+        <OrderDetailDrawer
+          order={selectedOrder}
+          tabKey={activeTab}
+          busy={busy === selectedOrder.kode_pesanan}
+          onAction={handleAction}
+          onClose={() => setSelectedOrder(null)}
+        />
+      )}
     </StaffLayout>
   );
 }

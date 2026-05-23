@@ -20,6 +20,7 @@ export default function Menu() {
 
   const [customizationItem, setCustomizationItem] = useState(null);
   const [cartOpen, setCartOpen] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState({});
 
   const cartCount = cartItems.length;
 
@@ -73,6 +74,7 @@ export default function Menu() {
             recipe: recipeList.length ? recipeList : (item.resep || item.recipe || item.deskripsi || item.desc || ''),
             categoryLabel,
             categoryId: normalizeCategoryId(categoryLabel),
+            foto: item.foto_menu || null,
           };
         });
 
@@ -205,11 +207,43 @@ export default function Menu() {
                   cursor: 'pointer'
                 }}
               >
-                <div className="kp-img-placeholder" data-label={`DRINK · ${d.name.toUpperCase()}`} style={{
-                  borderRadius: 0, height: 200,
-                  filter: isHover ? 'brightness(1.1)' : 'none',
-                  transition: 'filter 220ms ease'
-                }} />
+                {d.foto ? (
+                  <div style={{ position: 'relative', aspectRatio: '4 / 3', background: 'var(--surface)', overflow: 'hidden' }}>
+                    {!imgLoaded[d.id] && (
+                      <div style={{
+                        position: 'absolute', inset: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        <div style={{
+                          width: 28, height: 28, borderRadius: '50%',
+                          border: '2px solid var(--line)',
+                          borderTopColor: 'var(--brown-3)',
+                          animation: 'kp-spin 0.7s linear infinite'
+                        }} />
+                      </div>
+                    )}
+                    <img
+                      src={d.foto}
+                      alt={d.name}
+                      onLoad={() => setImgLoaded(prev => ({ ...prev, [d.id]: true }))}
+                      onError={() => setImgLoaded(prev => ({ ...prev, [d.id]: true }))}
+                      style={{
+                        width: '100%', height: '100%',
+                        objectFit: 'cover', objectPosition: 'center',
+                        display: 'block',
+                        opacity: imgLoaded[d.id] ? 1 : 0,
+                        filter: isHover ? 'brightness(1.1)' : 'none',
+                        transition: 'opacity 300ms ease, filter 220ms ease'
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div className="kp-img-placeholder" data-label={`DRINK · ${d.name.toUpperCase()}`} style={{
+                    borderRadius: 0, aspectRatio: '4 / 3',
+                    filter: isHover ? 'brightness(1.1)' : 'none',
+                    transition: 'filter 220ms ease'
+                  }} />
+                )}
                 <div style={{ padding: 20 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
                     <h4 style={{ fontSize: 18, margin: 0, fontWeight: 500, letterSpacing: '-0.01em' }}>{d.name}</h4>

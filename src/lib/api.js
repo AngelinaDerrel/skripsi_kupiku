@@ -6,8 +6,10 @@ function buildUrl(path) {
 }
 
 async function request(path, { method = 'GET', body = null, headers = {}, credentials = 'omit' } = {}) {
-  const opts = { method, headers: { 'Content-Type': 'application/json', ...headers }, credentials };
-  if (body) opts.body = JSON.stringify(body);
+  const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
+  const mergedHeaders = isFormData ? { ...headers } : { 'Content-Type': 'application/json', ...headers };
+  const opts = { method, headers: mergedHeaders, credentials };
+  if (body) opts.body = isFormData ? body : JSON.stringify(body);
 
   const res = await fetch(buildUrl(path), opts);
   const text = await res.text();

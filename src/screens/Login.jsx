@@ -28,9 +28,10 @@ export default function Login() {
     if (role === 'admin' || role === 'owner') return nav('/admin');
     if (role === 'staff') return nav('/staff/orders');
 
+    toast('Anda berhasil login dan bisa mulai order sekarang!', 'success');
     const allowedCustomerRoutes = ['/menu', '/mood', '/track', '/order'];
     if (nextPath && allowedCustomerRoutes.includes(nextPath)) return nav(nextPath);
-    return nav('/mood');
+    return nav('/menu');
   }
 
   async function handleLogin(e) {

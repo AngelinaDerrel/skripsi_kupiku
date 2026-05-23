@@ -151,6 +151,8 @@ export default function Dashboard() {
   const [newDrinkName, setNewDrinkName] = useState('');
   const [newDrinkPrice, setNewDrinkPrice] = useState('');
   const [newDrinkCategoryId, setNewDrinkCategoryId] = useState('');
+  const [newDrinkImage, setNewDrinkImage] = useState(null);
+  const [newDrinkImagePreview, setNewDrinkImagePreview] = useState('');
   const [newDrinkIngredients, setNewDrinkIngredients] = useState([
     { stockId: '', amount: '' },
   ]);
@@ -196,6 +198,7 @@ export default function Dashboard() {
         id: item.id_menu ?? item.id ?? item.menu_id ?? idx,
         name: pickString(item, ['nama_menu', 'namaMenu', 'menu', 'name', 'nama', 'menu_name', 'menuName', 'judul', 'title']),
         price: item.harga ?? item.price ?? '',
+        imageUrl: pickString(item, ['foto_menu', 'fotoMenu', 'image_url', 'imageUrl', 'gambar', 'photo']),
         categoryLabel,
         categoryId: String(item.id_kategori ?? item.kategori?.id_kategori ?? normalizeCategoryId(categoryLabel)),
         ingredients: reseps.map((r) => ({
@@ -249,6 +252,16 @@ export default function Dashboard() {
     const timer = setTimeout(() => setSuccessToast({ visible: false, message: '' }), 2200);
     return () => clearTimeout(timer);
   }, [successToast.visible]);
+
+  useEffect(() => {
+    if (!newDrinkImage) {
+      setNewDrinkImagePreview('');
+      return undefined;
+    }
+    const nextUrl = URL.createObjectURL(newDrinkImage);
+    setNewDrinkImagePreview(nextUrl);
+    return () => URL.revokeObjectURL(nextUrl);
+  }, [newDrinkImage]);
 
   useEffect(() => {
     let cancelled = false;
@@ -324,6 +337,7 @@ export default function Dashboard() {
     setNewDrinkName('');
     setNewDrinkPrice('');
     setNewDrinkCategoryId('');
+    setNewDrinkImage(null);
     setNewDrinkIngredients([{ stockId: '', amount: '' }]);
     setSubmitError('');
   }
@@ -431,13 +445,21 @@ export default function Dashboard() {
 
     try {
       setIsSaving(true);
-      const payload = {
-        nama_menu: trimmedName,
-        harga: parsedPrice,
-        id_kategori: newDrinkCategoryId ? Number(newDrinkCategoryId) : null,
-        bahan: bahanPayload,
-      };
-      const created = await api.post('menu', payload);
+      const formData = new FormData();
+      formData.append('nama_menu', trimmedName);
+      formData.append('harga', String(parsedPrice));
+      if (newDrinkCategoryId) {
+        formData.append('id_kategori', String(Number(newDrinkCategoryId)));
+      }
+      bahanPayload.forEach((row, index) => {
+        formData.append(`bahan[${index}][id_bahan]`, String(row.id_bahan));
+        formData.append(`bahan[${index}][jumlah]`, String(row.jumlah));
+      });
+      if (newDrinkImage) {
+        formData.append('foto_menu', newDrinkImage);
+      }
+
+      const created = await api.post('menu', formData);
       const mapped = mapMenuItems([created])[0];
       setMenuItems((current) => [mapped, ...current]);
       setSuccessToast({ visible: true, message: 'Menu baru berhasil ditambahkan.' });
@@ -761,6 +783,35 @@ export default function Dashboard() {
                     options={categoryOptions}
                     placeholder="Pilih kategori"
                   />
+                </div>
+
+                <div style={{ display: 'grid', gap: 8 }}>
+                  <label className="kp-mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>Foto menu</label>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/jpg,image/webp"
+                    onChange={(e) => setNewDrinkImage(e.target.files?.[0] || null)}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: 10,
+                      border: '1px solid var(--line-strong)',
+                      background: 'var(--surface)',
+                      color: 'var(--text)',
+                    }}
+                  />
+                  {newDrinkImagePreview && (
+                    <img
+                      src={newDrinkImagePreview}
+                      alt="Preview"
+                      style={{
+                        width: '100%',
+                        maxHeight: 180,
+                        objectFit: 'cover',
+                        borderRadius: 12,
+                        border: '1px solid var(--line)',
+                      }}
+                    />
+                  )}
                 </div>
 
                 <div style={{ display: 'grid', gap: 10 }}>
