@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useState } from 'react';
 import { DRINKS } from '../data/drinks.js';
 import { MENU_ITEMS } from '../data/menuItems.js';
 
@@ -16,8 +17,16 @@ export default function Results() {
   const mood = state?.mood || null;
   const flavor = state?.flavor || null;
   const temp = state?.temp || null;
-  const recNames = state?.recommendations || null;
+  const recPayload = state?.recommendations || null;
   const serverInput = state?.serverInput || null;
+  const serverRule = state?.serverRule || null;
+  const [imgLoaded, setImgLoaded] = useState({});
+
+  const formatPrice = (value) => {
+    const numeric = Number(value);
+    if (Number.isFinite(numeric)) return numeric.toLocaleString('id-ID');
+    return value || '-';
+  };
 
   function applyFilters() {
     let items = MENU_ITEMS.slice();
@@ -38,12 +47,24 @@ export default function Results() {
     return items;
   }
 
-  // If backend returned recommendation names, map them to MENU_ITEMS preserving order
-  const recommendedMatches = recNames && Array.isArray(recNames) ? recNames.map((n) => {
-    const found = MENU_ITEMS.find(mi => mi.name.toLowerCase() === String(n).toLowerCase());
+  // If backend returned recommendation objects, normalize to UI shape
+  const recommendedMatches = recPayload && Array.isArray(recPayload) ? recPayload.map((item) => {
+    if (item && typeof item === 'object') {
+      const name = item.menu || item.name || 'Menu';
+      return {
+        id: item.id_menu || item.id || `REC-${name}`,
+        name,
+        desc: item.deskripsi || '',
+        price: item.harga ?? '',
+        foto: item.foto_menu || null,
+        notes: [],
+        score_detail: item.score_detail || null,
+      };
+    }
+
+    const found = MENU_ITEMS.find(mi => mi.name.toLowerCase() === String(item).toLowerCase());
     if (found) return found;
-    // fallback minimal object when menu item not found locally
-    return { id: `REC-${n}`, name: String(n), desc: '', price: '', notes: [] };
+    return { id: `REC-${item}`, name: String(item), desc: '', price: '', notes: [] };
   }) : null;
 
   const matches = recommendedMatches || ((mood || flavor || temp) ? applyFilters() : null);
@@ -69,11 +90,14 @@ export default function Results() {
         <div style={{ padding: '52px 56px 32px', display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 60, alignItems: 'end' }}>
         <div>
           <div className="kp-eyebrow" style={{ marginBottom: 14 }}>
-            {serverInput ? `Reading: ${serverInput.mood} · preference: ${serverInput.rasa} · ${serverInput.temperatur}` : (mood ? `Reading: ${mood.toLowerCase()} · preference: ${flavor || 'any'} · ${temp || ''}` : 'Reading: curated picks')}
+            {serverInput ? `Reading: ${serverInput.mood} · preference: ${serverInput.flavor || 'any'} · ${serverInput.temp || ''}` : (mood ? `Reading: ${mood.toLowerCase()} · preference: ${flavor || 'any'} · ${temp || ''}` : 'Reading: curated picks')}
           </div>
           <h2 className="kp-display" style={{ fontSize: 52, lineHeight: 1.02, margin: 0 }}>
             {serverInput ? `Matches for ${serverInput.mood}` : (mood ? `Matches for ${mood}` : 'Top picks for you')}
           </h2>
+          {serverRule && (
+            <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-muted)' }}>Rule: {serverRule}</div>
+          )}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingBottom: 8 }}>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -95,13 +119,44 @@ export default function Results() {
         {(matches && matches.length > 0) ? (
           <>
             <div className="kp-card" style={{ display: 'grid', gridTemplateColumns: '380px 1fr', gap: 0, overflow: 'hidden', boxShadow: 'var(--shadow)', marginBottom: 24 }}>
-              <div className="kp-img-placeholder" data-label={`DRINK · ${matches[0].name.toUpperCase()}`} style={{ borderRadius: 0, height: 320 }} />
+              {matches[0].foto ? (
+                <div style={{ position: 'relative', aspectRatio: '4 / 3', background: 'var(--surface)', overflow: 'hidden' }}>
+                  {!imgLoaded[matches[0].id] && (
+                    <div style={{
+                      position: 'absolute', inset: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <div style={{
+                        width: 28, height: 28, borderRadius: '50%',
+                        border: '2px solid var(--line)',
+                        borderTopColor: 'var(--brown-3)',
+                        animation: 'kp-spin 0.7s linear infinite'
+                      }} />
+                    </div>
+                  )}
+                  <img
+                    src={matches[0].foto}
+                    alt={matches[0].name}
+                    onLoad={() => setImgLoaded(prev => ({ ...prev, [matches[0].id]: true }))}
+                    onError={() => setImgLoaded(prev => ({ ...prev, [matches[0].id]: true }))}
+                    style={{
+                      width: '100%', height: '100%',
+                      objectFit: 'cover', objectPosition: 'center',
+                      display: 'block',
+                      opacity: imgLoaded[matches[0].id] ? 1 : 0,
+                      transition: 'opacity 300ms ease'
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="kp-img-placeholder" data-label={`DRINK · ${matches[0].name.toUpperCase()}`} style={{ borderRadius: 0, height: 320 }} />
+              )}
               <div style={{ padding: 36, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
                       <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}>
-                        <span className="kp-chip">{(matches[0].mood || '').toUpperCase()}</span>
+                        <span className="kp-chip">{(matches[0].mood || serverInput?.mood || mood || '').toUpperCase()}</span>
                         {String(matches[0].id || '').startsWith('REC-') && (
                           <span className="kp-chip" style={{ background: 'transparent', color: 'var(--text-muted)', borderColor: 'var(--line-strong)' }}>Server</span>
                         )}
@@ -109,13 +164,13 @@ export default function Results() {
                       </div>
                       <h3 className="kp-display" style={{ fontSize: 38, margin: 0, lineHeight: 1 }}>{matches[0].name}</h3>
                     </div>
-                    <div className="kp-mono" style={{ fontSize: 13, color: 'var(--text)' }}>{matches[0].price}</div>
+                    <div className="kp-mono" style={{ fontSize: 13, color: 'var(--text)' }}>Rp {formatPrice(matches[0].price)}</div>
                   </div>
                   <p style={{ color: 'var(--text-muted)', marginTop: 18, fontSize: 14, lineHeight: 1.6, maxWidth: 520 }}>
                     {matches[0].desc}
                   </p>
                   <div style={{ display: 'flex', gap: 28, marginTop: 22 }}>
-                    {[{ l: 'BODY', v: '4 / 10' }, { l: 'CAFFEINE', v: 'MEDIUM' }, { l: 'TEMP', v: temp ? temp.toUpperCase() : 'HOT' }].map(s => (
+                    {[{ l: 'TEMP', v: temp ? temp.toUpperCase() : 'HOT' }, { l: 'SCORE', v: matches[0].score_detail ? matches[0].score_detail.final_score?.toFixed(3) : '—' }].map(s => (
                       <div key={s.l}>
                         <div className="kp-eyebrow" style={{ fontSize: 9 }}>{s.l}</div>
                         <div className="kp-mono" style={{ fontSize: 13, marginTop: 4 }}>{s.v}</div>
@@ -136,11 +191,42 @@ export default function Results() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
               {matches.slice(1).map((it) => (
                 <div key={it.id} className="kp-card" style={{ overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
-                  <div className="kp-img-placeholder" data-label={`DRINK · ${it.name.toUpperCase()}`} style={{ borderRadius: 0, height: 180 }} />
+                  {it.foto ? (
+                    <div style={{ position: 'relative', aspectRatio: '4 / 3', background: 'var(--surface)', overflow: 'hidden' }}>
+                      {!imgLoaded[it.id] && (
+                        <div style={{
+                          position: 'absolute', inset: 0,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                          <div style={{
+                            width: 24, height: 24, borderRadius: '50%',
+                            border: '2px solid var(--line)',
+                            borderTopColor: 'var(--brown-3)',
+                            animation: 'kp-spin 0.7s linear infinite'
+                          }} />
+                        </div>
+                      )}
+                      <img
+                        src={it.foto}
+                        alt={it.name}
+                        onLoad={() => setImgLoaded(prev => ({ ...prev, [it.id]: true }))}
+                        onError={() => setImgLoaded(prev => ({ ...prev, [it.id]: true }))}
+                        style={{
+                          width: '100%', height: '100%',
+                          objectFit: 'cover', objectPosition: 'center',
+                          display: 'block',
+                          opacity: imgLoaded[it.id] ? 1 : 0,
+                          transition: 'opacity 300ms ease'
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="kp-img-placeholder" data-label={`DRINK · ${it.name.toUpperCase()}`} style={{ borderRadius: 0, height: 180 }} />
+                  )}
                   <div style={{ padding: 20 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                        <span className="kp-chip">{(it.mood || '').toUpperCase()}</span>
+                        <span className="kp-chip">{(it.mood || serverInput?.mood || mood || '').toUpperCase()}</span>
                         {String(it.id || '').startsWith('REC-') && (
                           <span className="kp-mono" style={{ fontSize: 10, color: 'var(--text-muted)' }}>Server recommendation</span>
                         )}
@@ -155,7 +241,7 @@ export default function Results() {
                           <span key={n} className="kp-mono" style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>· {n}</span>
                         ))}
                       </div>
-                      <span className="kp-mono" style={{ fontSize: 12 }}>{it.price}</span>
+                      <span className="kp-mono" style={{ fontSize: 12 }}>Rp {formatPrice(it.price)}</span>
                     </div>
                   </div>
                 </div>

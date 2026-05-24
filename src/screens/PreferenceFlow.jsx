@@ -39,6 +39,7 @@ export default function PreferenceFlow() {
   const [remoteLoading, setRemoteLoading] = useState(false);
   const [remoteError, setRemoteError] = useState(null);
   const [serverInput, setServerInput] = useState(null);
+  const [serverRule, setServerRule] = useState(null);
 
   function applyFilters() {
     let items = MENU_ITEMS.slice();
@@ -63,26 +64,28 @@ export default function PreferenceFlow() {
   const results = remoteMatches && Array.isArray(remoteMatches) ? remoteMatches : localResults;
 
   async function handleShowMatches() {
-    // prefer server-side recommendations via POST to /recommendation
+    // prefer server-side recommendations via POST to /rekomendasi
     setRemoteLoading(true);
     setRemoteError(null);
     try {
-      const payload = { mood: selectedMood || '', rasa: flavor || '', temperatur: temp || '' };
-      const res = await api.post('/recommendation', payload);
-      const recs = res && res.recommendations ? res.recommendations : null;
-      const input = res && res.input ? res.input : null;
+      const payload = { mood: selectedMood || '', flavor: flavor || '', temp: temp || '' };
+      const res = await api.post('/rekomendasi', payload);
+      const recs = res && Array.isArray(res.data) ? res.data : null;
+      const input = res ? { mood: res.mood, flavor, temp } : null;
+      const rule = res ? res.rule : null;
       if (input) setServerInput(input);
+      if (rule) setServerRule(rule);
       if (Array.isArray(recs) && recs.length) {
         setRemoteMatches(recs);
-        nav('/results', { state: { mood: selectedMood, flavor, temp, recommendations: recs, serverInput: input } });
+        nav('/results', { state: { mood: selectedMood, flavor, temp, recommendations: recs, serverInput: input, serverRule: rule } });
         return;
       }
       // fallback to local results
-      nav('/results', { state: { mood: selectedMood, flavor, temp } });
+      nav('/results', { state: { mood: selectedMood, flavor, temp, serverInput: input, serverRule: rule } });
     } catch (err) {
       setRemoteError(err?.message || 'Failed to get recommendations');
       // still navigate with local fallback
-      nav('/results', { state: { mood: selectedMood, flavor, temp, serverInput: serverInput } });
+      nav('/results', { state: { mood: selectedMood, flavor, temp, serverInput: serverInput, serverRule } });
     } finally {
       setRemoteLoading(false);
     }
