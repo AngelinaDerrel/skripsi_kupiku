@@ -70,9 +70,9 @@ export default function PreferenceFlow() {
     try {
       const payload = { mood: selectedMood || '', flavor: flavor || '', temp: temp || '' };
       const res = await api.post('/rekomendasi', payload);
-      const recs = res && Array.isArray(res.data) ? res.data : null;
-      const input = res ? { mood: res.mood, flavor, temp } : null;
-      const rule = res ? res.rule : null;
+      const recs = res && Array.isArray(res.recommendations) ? res.recommendations : null;
+      const input = res?.input ? { mood: res.input.mood, flavor: res.input.flavor, temp: res.input.temp } : null;
+      const rule = res?.rule ?? null;
       if (input) setServerInput(input);
       if (rule) setServerRule(rule);
       if (Array.isArray(recs) && recs.length) {
