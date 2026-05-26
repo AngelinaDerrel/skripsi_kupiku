@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { DRINKS } from '../data/drinks.js';
 import { MENU_ITEMS } from '../data/menuItems.js';
 import { useCart } from '../context/CartContext.jsx';
 import CustomizationModal from '../components/CustomizationModal.jsx';
@@ -102,7 +101,7 @@ export default function Results() {
           <div style={{ width: 80, height: 2, background: 'var(--brown)' }} />
           <div style={{ width: 80, height: 2, background: 'var(--brown)' }} />
         </div>
-        <span className="kp-mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{(matches || DRINKS).length} matches found</span>
+        <span className="kp-mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{matches ? matches.length : 0} matches found</span>
       </div>
 
         <div style={{ padding: '52px 56px 32px', display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 60, alignItems: 'end' }}>
@@ -274,72 +273,25 @@ export default function Results() {
             </div>
           </>
         ) : (
-          <>
-            <div className="kp-card" style={{ display: 'grid', gridTemplateColumns: '380px 1fr', gap: 0, overflow: 'hidden', boxShadow: 'var(--shadow)', marginBottom: 24 }}>
-              <div className="kp-img-placeholder" data-label="DRINK · CEDAR POUR-OVER" style={{ borderRadius: 0, height: 320 }} />
-              <div style={{ padding: 36, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div>
-                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}>
-                        <span className="kp-chip">CALM</span>
-                        <span className="kp-mono" style={{ fontSize: 11, color: 'var(--brown-3)' }}>96% match · top pick</span>
-                      </div>
-                      <h3 className="kp-display" style={{ fontSize: 38, margin: 0, lineHeight: 1 }}>Cedar Pour-Over</h3>
-                    </div>
-                    <div className="kp-mono" style={{ fontSize: 13, color: 'var(--text)' }}>IDR 48k</div>
-                  </div>
-                  <p style={{ color: 'var(--text-muted)', marginTop: 18, fontSize: 14, lineHeight: 1.6, maxWidth: 520 }}>
-                    Single-origin Aceh Gayo, brewed slow over a cedar-smoked filter. Cocoa-forward,
-                    rounded acidity, finishes with a soft apricot note.
-                  </p>
-                </div>
-                <div style={{ display: 'flex', gap: 10, marginTop: 28, alignItems: 'center' }}>
-                  <button className="kp-btn" onClick={() => handleAddClick(DRINKS[0])}>Add to order</button>
-                  <div style={{ flex: 1 }} />
-                  <span className="kp-mono" style={{ fontSize: 11, color: 'var(--text-dim)' }}>SKU · KP-007</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="kp-eyebrow" style={{ marginBottom: 16 }}>Also in your range</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
-              {DRINKS.slice(1).map((d) => (
-                <div key={d.name} className="kp-card" style={{ overflow: 'hidden', boxShadow: 'var(--shadow-sm)', transition: 'transform 200ms ease, box-shadow 200ms ease' }}>
-                  <div className="kp-img-placeholder" data-label={`DRINK · ${d.name.toUpperCase()}`} style={{ borderRadius: 0, height: 180 }} />
-                  <div style={{ padding: 20 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
-                      <h4 style={{ fontSize: 18, margin: 0, fontWeight: 500, letterSpacing: '-0.01em' }}>{d.name}</h4>
-                      <span className="kp-mono" style={{ fontSize: 13, color: 'var(--text)', whiteSpace: 'nowrap' }}>{d.price}</span>
-                    </div>
-                    <p style={{ color: 'var(--text-muted)', fontSize: 12.5, lineHeight: 1.55, marginTop: 6 }}>{d.desc}</p>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--line)' }}>
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        {d.notes.map(n => (
-                          <span key={n} className="kp-mono" style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>· {n}</span>
-                        ))}
-                      </div>
-                      <button
-                        onClick={() => handleAddClick({ id: d.name, name: d.name, price: d.price })}
-                        title="Tambah ke cart"
-                        style={{
-                          width: 30, height: 30, borderRadius: '50%',
-                          background: 'var(--surface-2)',
-                          border: '1px solid var(--line-strong)',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: 16, color: 'var(--text-muted)',
-                          cursor: 'pointer', transition: 'all 200ms ease',
-                          flexShrink: 0,
-                        }}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--brown)'; e.currentTarget.style.color = 'var(--text)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'var(--surface-2)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
-                      >+</button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
+          <div style={{
+            padding: '64px 32px', display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center', textAlign: 'center',
+            border: '1px solid var(--line)', borderRadius: 'var(--radius)',
+            background: 'var(--surface)',
+          }}>
+            <div className="kp-mono" style={{ fontSize: 11, color: 'var(--text-dim)', letterSpacing: '0.08em', marginBottom: 16 }}>NO MATCHES</div>
+            <h3 className="kp-display" style={{ fontSize: 28, margin: 0, color: 'var(--text-muted)' }}>
+              Belum ada menu untuk kombinasi ini
+            </h3>
+            <p style={{ color: 'var(--text-dim)', fontSize: 13, marginTop: 12, maxWidth: 380, lineHeight: 1.6 }}>
+              Tidak ada menu dengan rasa <strong style={{ color: 'var(--text-muted)' }}>{flavor}</strong> dan
+              suhu <strong style={{ color: 'var(--text-muted)' }}>{temp}</strong> di database saat ini.
+              Coba pilihan lain atau hubungi kasir.
+            </p>
+            <button className="kp-btn kp-btn-ghost" style={{ marginTop: 28 }} onClick={() => nav('/mood')}>
+              Coba lagi
+            </button>
+          </div>
         )}
 
         <div style={{ marginTop: 40, padding: '20px 24px', background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--radius)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

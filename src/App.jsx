@@ -41,6 +41,7 @@ export default function App() {
       <Route path="/staff/orders" element={<ProtectedRoute role="staff"><StaffOrders /></ProtectedRoute>} />
       <Route path="/staff/stok-masuk" element={<ProtectedRoute role="staff"><StokMasuk /></ProtectedRoute>} />
       <Route path="/staff/stock" element={<ProtectedRoute role="staff"><StockOpname /></ProtectedRoute>} />
+      <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/staff/profile" element={<ProtectedRoute role="staff"><Profile /></ProtectedRoute>} />
       <Route path="/admin/profile" element={<ProtectedRoute role={["admin","owner"]}><Profile /></ProtectedRoute>} />
       <Route path="/owner/laporan" element={<ProtectedRoute role="owner"><Laporan /></ProtectedRoute>} />

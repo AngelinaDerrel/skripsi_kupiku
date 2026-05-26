@@ -2,6 +2,8 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import LogoKupiku from '../assets/kupikuLogo.png';
 
+const BASE = import.meta.env.VITE_API_URL || '/api';
+
 export default function PublicNavbar({
   active,
   onDiscoverClick,
@@ -22,6 +24,28 @@ export default function PublicNavbar({
     else if (pathname.startsWith('/mood')) activeKey = 'mood';
     else if (pathname.startsWith('/track')) activeKey = 'track';
     else activeKey = '';
+  }
+
+  const [user, setUser] = React.useState(() => {
+    try { return JSON.parse(localStorage.getItem('kupiku_user') || ''); } catch { return null; }
+  });
+
+  const initials = user?.name
+    ? user.name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()
+    : '';
+
+  async function handleLogout() {
+    const token = localStorage.getItem('kupiku_token');
+    try {
+      await fetch(`${BASE}/logout`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      });
+    } catch {}
+    localStorage.removeItem('kupiku_user');
+    localStorage.removeItem('kupiku_token');
+    setUser(null);
+    nav('/');
   }
 
   function handleDiscover() {
@@ -69,7 +93,6 @@ export default function PublicNavbar({
         </div>
       </div>
       <div style={{ display: 'flex', gap: 36, fontSize: 13, color: 'var(--text-muted)' }}>
-        {/** Small NavItem to handle hover + active styling */}
         {(() => {
           function NavItem({ children, active, onClick }) {
             const [hover, setHover] = React.useState(false);
@@ -99,11 +122,38 @@ export default function PublicNavbar({
         })()}
       </div>
       <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-        {showAdmin && (
-          <span style={{ fontSize: 13, color: 'var(--text-muted)', cursor: 'pointer' }} onClick={handleAdmin}>Sign in</span>
-        )}
-        {showOrder && (
-          <button className="kp-btn kp-btn-sm" onClick={handleOrder}>Order</button>
+        {user ? (
+          <>
+            <div
+              onClick={() => nav('/profile')}
+              title={user.name}
+              style={{
+                width: 32, height: 32, borderRadius: '50%', cursor: 'pointer', flexShrink: 0,
+                background: 'linear-gradient(135deg, #6B4F3A, #2B2010)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 12, fontWeight: 700, color: 'var(--text)',
+                border: '1px solid rgba(168,131,95,0.35)',
+              }}
+            >
+              {initials}
+            </div>
+            <span
+              style={{ fontSize: 13, color: 'var(--text-muted)', cursor: 'pointer' }}
+              onClick={() => nav('/profile')}
+            >
+              {user.name?.split(' ')[0]}
+            </span>
+            <button className="kp-btn kp-btn-sm" onClick={handleLogout}>Keluar</button>
+          </>
+        ) : (
+          <>
+            {showAdmin && (
+              <span style={{ fontSize: 13, color: 'var(--text-muted)', cursor: 'pointer' }} onClick={handleAdmin}>Sign in</span>
+            )}
+            {showOrder && (
+              <button className="kp-btn kp-btn-sm" onClick={handleOrder}>Order</button>
+            )}
+          </>
         )}
       </div>
     </nav>

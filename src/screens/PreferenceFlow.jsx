@@ -10,7 +10,6 @@ const FLAVORS = [
   { id: 'manis', label: 'Manis' },
   { id: 'pahit', label: 'Pahit' },
   { id: 'asam', label: 'Asam' },
-
 ];
 
 const TEMPS = [
@@ -136,7 +135,7 @@ export default function PreferenceFlow() {
                     <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 8 }}>
                       {f.id === 'manis' && 'Sweet, caramel, honey notes.'}
                       {f.id === 'pahit' && 'Bitter-forward, dark chocolate and smoke.'}
-                      {f.id === 'balance' && 'Even, rounded, easy to sip.'}
+                      {f.id === 'balanced' && 'Even, rounded, easy to sip.'}
                       {f.id === 'strong' && 'High-caffeine, espresso-forward.'}
                     </div>
                   </div>

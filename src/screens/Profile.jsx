@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AdminLayout from '../components/AdminLayout.jsx';
 import StaffLayout from './StaffLayout.jsx';
+import PublicNavbar from '../components/PublicNavbar.jsx';
 
 const BASE = import.meta.env.VITE_API_URL || '/api';
 
 export default function Profile() {
+  const nav = useNavigate();
   const token = localStorage.getItem('kupiku_token');
   const raw = localStorage.getItem('kupiku_user');
   const storedUser = raw ? JSON.parse(raw) : {};
@@ -75,6 +78,18 @@ export default function Profile() {
     }
   }
 
+  async function handleLogout() {
+    try {
+      await fetch(`${BASE}/logout`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      });
+    } catch {}
+    localStorage.removeItem('kupiku_user');
+    localStorage.removeItem('kupiku_token');
+    nav('/');
+  }
+
   const inputStyle = {
     width: '100%', padding: '10px 12px', borderRadius: 8,
     background: '#0B0B0B', border: '1px solid var(--line)',
@@ -91,12 +106,9 @@ export default function Profile() {
     background: 'var(--surface)', border: '1px solid var(--line)',
   };
 
-  const content = (
-    <div style={{ padding: '32px 40px', maxWidth: 960 }}>
-      <div className="kp-eyebrow" style={{ fontSize: 10, marginBottom: 4 }}>Akun</div>
-      <h1 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 24px' }}>Profil Saya</h1>
-
-      {/* Info card — full width top */}
+  const profileCards = (
+    <>
+      {/* Info card */}
       <div style={{ ...cardStyle, display: 'flex', alignItems: 'center', gap: 20, marginBottom: 20 }}>
         <div style={{
           width: 60, height: 60, borderRadius: '50%', flexShrink: 0,
@@ -115,7 +127,7 @@ export default function Profile() {
           background: 'rgba(107,79,58,0.2)', border: '1px solid rgba(107,79,58,0.3)',
           color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em',
         }}>
-          {role}
+          {role || 'customer'}
         </span>
       </div>
 
@@ -169,10 +181,48 @@ export default function Profile() {
         </div>
 
       </div>
+    </>
+  );
+
+  const isCustomer = !['admin', 'owner', 'staff'].includes(role);
+
+  if (isCustomer) {
+    return (
+      <div className="kp" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        <PublicNavbar active="" />
+        <div style={{ flex: 1, padding: '48px 56px' }}>
+          <div style={{ maxWidth: 960, margin: '0 auto' }}>
+            <div className="kp-eyebrow" style={{ fontSize: 10, marginBottom: 4 }}>Akun</div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+              <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>Profil Saya</h1>
+              <button
+                onClick={handleLogout}
+                style={{
+                  padding: '8px 18px', borderRadius: 8, fontSize: 13, cursor: 'pointer',
+                  background: 'transparent', border: '1px solid rgba(220,80,80,0.35)',
+                  color: 'rgba(220,110,110,0.9)',
+                }}
+              >
+                Keluar
+              </button>
+            </div>
+            {profileCards}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const isAdmin = role === 'admin' || role === 'owner';
+
+  const content = (
+    <div style={{ padding: '32px 40px', maxWidth: 960 }}>
+      <div className="kp-eyebrow" style={{ fontSize: 10, marginBottom: 4 }}>Akun</div>
+      <h1 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 24px' }}>Profil Saya</h1>
+      {profileCards}
     </div>
   );
 
-  const isAdmin = role === 'admin' || role === 'owner';
   const Layout = isAdmin ? AdminLayout : StaffLayout;
   return <Layout>{content}</Layout>;
 }
