@@ -12,13 +12,11 @@ import './styles/globals.css';
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 const app = (
-  <React.StrictMode>
-    <BrowserRouter>
-      <CartProvider>
-        <App />
-      </CartProvider>
-    </BrowserRouter>
-  </React.StrictMode>
+  <BrowserRouter>
+    <CartProvider>
+      <App />
+    </CartProvider>
+  </BrowserRouter>
 );
 
 ReactDOM.createRoot(document.getElementById('root')).render(

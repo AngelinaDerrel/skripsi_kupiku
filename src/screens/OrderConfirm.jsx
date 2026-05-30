@@ -116,7 +116,8 @@ export default function OrderConfirm() {
   const [orderCode, setOrderCode]     = useState(null);
   const [orderStatus, setOrderStatus] = useState('menunggu_pembayaran');
 
-  const pollRef = useRef(null);
+  const pollRef    = useRef(null);
+  const hasPosted  = useRef(false);
 
   // ── Create order on mount ──────────────────────────────────────────────────
   useEffect(() => {
@@ -124,6 +125,8 @@ export default function OrderConfirm() {
       nav('/login', { state: { next: '/order/confirm' } });
       return;
     }
+    if (hasPosted.current) return;
+    hasPosted.current = true;
 
     const token = localStorage.getItem('kupiku_token');
 

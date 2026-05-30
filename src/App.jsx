@@ -8,7 +8,7 @@ import Menu from './screens/Menu.jsx';
 import Dashboard from './screens/Dashboard.jsx';
 import Staff from './screens/Staff.jsx';
 import StaffOrders from './screens/StaffOrders.jsx';
-import StockOpname from './screens/StockOpname.jsx';
+import Stock from './screens/Stock.jsx';
 import StokMasuk from './screens/StokMasuk.jsx';
 import Login from './screens/Login.jsx';
 import Register from './screens/Register.jsx';
@@ -35,12 +35,12 @@ export default function App() {
       <Route path="/order/confirm" element={<ProtectedRoute><OrderConfirm /></ProtectedRoute>} />
       <Route path="/track" element={<ProtectedRoute><OrderTracking /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute role={["admin","owner"]}><Dashboard /></ProtectedRoute>} />
-      <Route path="/admin/stock" element={<ProtectedRoute role={["admin","owner"]}><StockOpname layout="admin" /></ProtectedRoute>} />
+      <Route path="/admin/stock" element={<ProtectedRoute role={["admin","owner"]}><Stock layout="admin" /></ProtectedRoute>} />
       <Route path="/admin/staff" element={<ProtectedRoute role={["admin","owner"]}><Staff /></ProtectedRoute>} />
       <Route path="/staff" element={<ProtectedRoute role="staff"><StaffOrders /></ProtectedRoute>} />
       <Route path="/staff/orders" element={<ProtectedRoute role="staff"><StaffOrders /></ProtectedRoute>} />
       <Route path="/staff/stok-masuk" element={<ProtectedRoute role="staff"><StokMasuk /></ProtectedRoute>} />
-      <Route path="/staff/stock" element={<ProtectedRoute role="staff"><StockOpname /></ProtectedRoute>} />
+      <Route path="/staff/stock" element={<ProtectedRoute role="staff"><Stock /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/staff/profile" element={<ProtectedRoute role="staff"><Profile /></ProtectedRoute>} />
       <Route path="/admin/profile" element={<ProtectedRoute role={["admin","owner"]}><Profile /></ProtectedRoute>} />

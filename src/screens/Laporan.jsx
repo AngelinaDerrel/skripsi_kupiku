@@ -8,6 +8,8 @@ const MONTHS = [
   'Juli','Agustus','September','Oktober','November','Desember',
 ];
 
+const DAYS = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+
 const TABS = [
   { id: 'penjualan', label: 'Penjualan' },
   { id: 'stok',      label: 'Stok Masuk/Keluar' },
@@ -16,6 +18,37 @@ const TABS = [
 
 function fmt(n) {
   return 'Rp ' + Number(n).toLocaleString('id-ID');
+}
+
+function formatTime(ts) {
+  if (!ts) return '-';
+  try {
+    return new Date(ts).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+  } catch { return '-'; }
+}
+
+function getDayName(tahun, bulan, hari) {
+  return DAYS[new Date(tahun, bulan - 1, hari).getDay()];
+}
+
+function nowLabel() {
+  const n = new Date();
+  return n.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    + ', ' + n.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+}
+
+async function downloadBlob(url, filename, token) {
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) throw new Error('Gagal generate PDF');
+  const blob = await res.blob();
+  const href = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = href;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(href);
 }
 
 // ---- SVG Bar Chart (vertical, for daily penjualan) ----
@@ -104,6 +137,107 @@ function StatCard({ label, value }) {
   );
 }
 
+// ---- Shared PDF CSS ----
+const PDF_CSS = `
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,sans-serif;color:#111;padding:32px 40px;font-size:13px}
+  .brand{text-align:center;margin-bottom:20px}
+  .brand-name{font-size:20px;font-weight:800;color:#6B4F3A;letter-spacing:.02em}
+  .brand-sub{font-size:10px;color:#aaa;letter-spacing:.1em;text-transform:uppercase;margin-top:2px}
+  h1{font-size:18px;font-weight:700;text-align:center;margin-bottom:16px}
+  .info-row{display:flex;justify-content:space-between;font-size:12px;color:#555;border-top:2px solid #6B4F3A;border-bottom:1px solid #eee;padding:10px 0;margin-bottom:16px}
+  .total-card{background:#f8f5f2;border-left:4px solid #6B4F3A;padding:12px 16px;border-radius:4px;margin-bottom:20px;display:inline-block;min-width:220px}
+  .total-label{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+  .total-value{font-size:22px;font-weight:700;color:#6B4F3A}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  thead tr{background:#6B4F3A;color:#fff}
+  th{padding:9px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+  td{padding:8px 10px;border-bottom:1px solid #f0f0f0;vertical-align:top}
+  tr:nth-child(even) td{background:#fafafa}
+  .footer{margin-top:20px;font-size:10px;color:#bbb;text-align:right;border-top:1px solid #eee;padding-top:8px}
+  @media print{body{padding:16px 24px}}
+`;
+
+function generateDailyPrintHTML({ tanggal, dayName, bulanName, tahun, data }) {
+  const now = nowLabel();
+  const [y, , d] = tanggal.split('-');
+  const reportDate = `${dayName}, ${parseInt(d, 10)} ${bulanName} ${y}`;
+  const rows = (data.rows || []).map((r) => `
+    <tr>
+      <td>${r.kode_pesanan}</td>
+      <td>${formatTime(r.waktu_pemesanan)}</td>
+      <td>${r.menu}</td>
+      <td style="text-align:center">${r.qty}</td>
+      <td style="text-align:right">${fmt(r.total_harga)}</td>
+    </tr>`).join('');
+
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>Rekap Penjualan Harian - ${reportDate}</title>
+  <style>${PDF_CSS}</style>
+</head><body>
+  <div class="brand">
+    <div class="brand-name">Kupiku Coffee</div>
+    <div class="brand-sub">Yogyakarta</div>
+  </div>
+  <h1>Rekap Total Penjualan Harian</h1>
+  <div class="info-row">
+    <span><strong>${reportDate}</strong></span>
+    <span>Dicetak: ${now}</span>
+  </div>
+  <div class="total-card">
+    <div class="total-label">Total Pendapatan</div>
+    <div class="total-value">${fmt(data.total_pendapatan)}</div>
+  </div>
+  <table>
+    <thead><tr>
+      <th>Kode Pesanan</th><th>Waktu</th><th>Menu</th>
+      <th style="text-align:center">Qty</th><th style="text-align:right">Total</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+  <div class="footer">Kupiku Coffee — Laporan Penjualan Harian ${reportDate}</div>
+</body></html>`;
+}
+
+function generateMonthlyPrintHTML({ bulan, tahun, data }) {
+  const now = nowLabel();
+  const periodLabel = `${MONTHS[bulan - 1]} ${tahun}`;
+  const rows = (data.menus || []).map((m) => `
+    <tr>
+      <td>${m.id_menu}</td>
+      <td>${m.nama_menu}</td>
+      <td>${m.nama_kategori}</td>
+      <td style="text-align:center">${m.qty_terjual}</td>
+    </tr>`).join('');
+
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>Laporan Penjualan Bulanan - ${periodLabel}</title>
+  <style>${PDF_CSS}</style>
+</head><body>
+  <div class="brand">
+    <div class="brand-name">Kupiku Coffee</div>
+    <div class="brand-sub">Yogyakarta</div>
+  </div>
+  <h1>Laporan Penjualan Bulanan</h1>
+  <div class="info-row">
+    <span>Periode: <strong>${periodLabel}</strong></span>
+    <span>Dicetak: ${now}</span>
+  </div>
+  <div class="total-card">
+    <div class="total-label">Total Pendapatan</div>
+    <div class="total-value">${fmt(data.total_pendapatan)}</div>
+  </div>
+  <table>
+    <thead><tr>
+      <th>ID Menu</th><th>Menu</th><th>Kategori</th>
+      <th style="text-align:center">Qty Terjual</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+  <div class="footer">Kupiku Coffee — Laporan Penjualan Bulanan ${periodLabel}</div>
+</body></html>`;
+}
+
 // ---- PDF print HTML generator ----
 function buildSVGBar(items, color, W = 580, H = 140) {
   if (!items.length) return '<p style="color:#888">Tidak ada data</p>';
@@ -190,8 +324,8 @@ function generatePrintHTML({ tab, bulan, tahun, penjualan, stok, opname }) {
       <div class="section-title">Grafik Stok Masuk vs Keluar</div>
       ${buildHSVGBar(items, '#6B4F3A', '#4A7C59')}
       <div class="section-title">Tabel Detail</div>
-      <table><thead><tr><th>Bahan</th><th>Satuan</th><th>Masuk</th><th>Keluar</th><th>Selisih</th></tr></thead><tbody>
-        ${(stok.data || []).map((d) => `<tr><td>${d.nama_bahan}</td><td>${d.satuan}</td><td>${d.total_masuk}</td><td>${d.total_keluar}</td><td>${d.total_masuk - d.total_keluar}</td></tr>`).join('')}
+      <table><thead><tr><th>Bahan</th><th>Masuk</th><th>Keluar</th><th>Stok Saat Ini</th><th>Satuan</th></tr></thead><tbody>
+        ${(stok.data || []).map((d) => `<tr><td>${d.nama_bahan}</td><td>${d.total_masuk}</td><td>${d.total_keluar}</td><td>${d.stok_saat_ini}</td><td>${d.satuan}</td></tr>`).join('')}
       </tbody></table>`;
   }
 
@@ -251,6 +385,9 @@ export default function Laporan() {
   const [opname, setOpname]       = useState(null);
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState(null);
+  const [loadingPdf, setLoadingPdf] = useState(null);
+  const [opnameDownloadError, setOpnameDownloadError] = useState('');
+  const [hoverStok, setHoverStok] = useState(null);
 
   useEffect(() => { fetchData(); }, [tab, bulan, tahun]);
 
@@ -270,6 +407,70 @@ export default function Laporan() {
       setError(e.message);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function downloadDailyPDF(hari) {
+    const key = `day-${hari}`;
+    const tanggal = `${tahun}-${String(bulan).padStart(2, '0')}-${String(hari).padStart(2, '0')}`;
+    setLoadingPdf(key);
+    try {
+      await downloadBlob(
+        `${BASE}/laporan/pdf/harian?tanggal=${tanggal}`,
+        `laporan-harian-${tanggal}.pdf`,
+        token
+      );
+    } catch (e) {
+      console.error('PDF daily error:', e);
+    } finally {
+      setLoadingPdf(null);
+    }
+  }
+
+  async function downloadOpnamePDF(id, tanggal) {
+    const key = `opname-${id}`;
+    setLoadingPdf(key);
+    setOpnameDownloadError('');
+    try {
+      await downloadBlob(
+        `${BASE}/stock-opname/${id}/pdf`,
+        `stock-opname-${tanggal}.pdf`,
+        token,
+      );
+    } catch (e) {
+      setOpnameDownloadError('Gagal download PDF: ' + (e.message || ''));
+    } finally {
+      setLoadingPdf(null);
+    }
+  }
+
+  async function downloadMonthlyPDF() {
+    setLoadingPdf('monthly');
+    try {
+      await downloadBlob(
+        `${BASE}/laporan/pdf/bulanan?bulan=${bulan}&tahun=${tahun}`,
+        `laporan-bulanan-${tahun}-${String(bulan).padStart(2, '0')}.pdf`,
+        token
+      );
+    } catch (e) {
+      console.error('PDF monthly error:', e);
+    } finally {
+      setLoadingPdf(null);
+    }
+  }
+
+  async function downloadStokPDF() {
+    setLoadingPdf('stok-monthly');
+    try {
+      await downloadBlob(
+        `${BASE}/laporan/pdf/stok?bulan=${bulan}&tahun=${tahun}`,
+        `laporan-stok-${tahun}-${String(bulan).padStart(2, '0')}.pdf`,
+        token
+      );
+    } catch (e) {
+      console.error('PDF stok error:', e);
+    } finally {
+      setLoadingPdf(null);
     }
   }
 
@@ -303,7 +504,7 @@ export default function Laporan() {
     : [];
 
   const oItems = tab === 'opname' && opname
-    ? (opname.data || []).map((d) => ({ l: d.nama_bahan, v1: d.stok_saat_ini }))
+    ? (opname.data || [])
     : [];
 
   const rataRata = penjualan && penjualan.jumlah_pesanan > 0
@@ -326,14 +527,26 @@ export default function Laporan() {
             <select value={tahun} onChange={(e) => setTahun(Number(e.target.value))} style={selStyle}>
               {years.map((y) => <option key={y} value={y}>{y}</option>)}
             </select>
-            <button
-              className="kp-btn kp-btn-sm"
-              onClick={exportPDF}
-              disabled={loading || (!penjualan && !stok && !opname)}
-              style={{ fontSize: 12 }}
-            >
-              ↓ Export PDF
-            </button>
+            {tab === 'penjualan' && (
+              <button
+                className="kp-btn kp-btn-sm"
+                onClick={exportPDF}
+                disabled={loading || !penjualan}
+                style={{ fontSize: 12 }}
+              >
+                ↓ Laporan Bulanan
+              </button>
+            )}
+            {tab === 'stok' && (
+              <button
+                className="kp-btn kp-btn-sm"
+                onClick={downloadStokPDF}
+                disabled={loading || !stok || loadingPdf === 'stok-monthly'}
+                style={{ fontSize: 12 }}
+              >
+                {loadingPdf === 'stok-monthly' ? '...' : '↓ Export Stok PDF'}
+              </button>
+            )}
           </div>
         </div>
 
@@ -383,51 +596,50 @@ export default function Laporan() {
               <StatCard label="Rata-rata / Pesanan" value={fmt(rataRata)} />
             </div>
 
-            {/* Chart */}
-            <div style={{ marginBottom: 24, padding: '20px 20px 12px', borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--line)' }}>
-              <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 14 }}>Grafik Penjualan Harian</div>
-              <VertBarChart items={pDays} color="#6B4F3A" />
-            </div>
+            {/* ---- PDF Download Section ---- */}
+            <div style={{ marginTop: 28 }}>
+              {/* <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, color: 'var(--text)' }}>Laporan Penjualan Harian</div> */}
 
-            {/* Top menu */}
-            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-              <div style={{ flex: 1, minWidth: 240, padding: 20, borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--line)' }}>
-                <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 14 }}>Top 5 Menu Terlaris</div>
-                {(penjualan.top_menu || []).length === 0 && <EmptyChart />}
-                {(penjualan.top_menu || []).map((m, i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--line)', fontSize: 13 }}>
-                    <span style={{ color: i === 0 ? 'var(--text)' : 'var(--text-muted)' }}>
-                      <span style={{ fontWeight: 600, marginRight: 8, color: 'var(--text-muted)', fontSize: 11 }}>#{i + 1}</span>
-                      {m.nama_menu}
+              {/* Laporan Harian list */}
+              {(penjualan.harian || []).length === 0 ? (
+                <EmptyChart />
+              ) : (
+                <div style={{ borderRadius: 10, border: '1px solid var(--line)', overflow: 'hidden' }}>
+                  <div style={{ padding: '9px 18px', background: 'var(--surface)', borderBottom: '1px solid var(--line)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 600 }}>
+                      Laporan Penjualan Harian
                     </span>
-                    <span style={{ fontWeight: 600 }}>{m.terjual}x</span>
+                    <span style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 600 }}>Aksi</span>
                   </div>
-                ))}
-              </div>
-
-              <div style={{ flex: 2, minWidth: 280, padding: 20, borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--line)' }}>
-                <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 14 }}>Detail Harian</div>
-                <div style={{ overflowY: 'auto', maxHeight: 240 }}>
-                  <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr style={{ color: 'var(--text-muted)' }}>
-                        {['Hari','Pesanan','Total'].map((h) => (
-                          <th key={h} style={{ textAlign: 'left', padding: '6px 8px', borderBottom: '1px solid var(--line)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(penjualan.harian || []).map((h) => (
-                        <tr key={h.hari}>
-                          <td style={{ padding: '7px 8px', borderBottom: '1px solid var(--line)' }}>Hari {h.hari}</td>
-                          <td style={{ padding: '7px 8px', borderBottom: '1px solid var(--line)' }}>{h.jumlah_pesanan}</td>
-                          <td style={{ padding: '7px 8px', borderBottom: '1px solid var(--line)', fontWeight: 600 }}>{fmt(h.total)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  {(penjualan.harian || []).map((h) => {
+                    const dayName = getDayName(tahun, bulan, h.hari);
+                    const key = `day-${h.hari}`;
+                    return (
+                      <div
+                        key={h.hari}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 18px', borderBottom: '1px solid var(--line)', gap: 12 }}
+                      >
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 500 }}>
+                            {dayName}, {h.hari} {MONTHS[bulan - 1]} {tahun}
+                          </div>
+                          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                            {h.jumlah_pesanan} pesanan&nbsp;&nbsp;·&nbsp;&nbsp;{fmt(h.total)}
+                          </div>
+                        </div>
+                        <button
+                          className="kp-btn kp-btn-sm"
+                          style={{ fontSize: 11, minWidth: 95, flexShrink: 0 }}
+                          disabled={loadingPdf === key}
+                          onClick={() => downloadDailyPDF(h.hari)}
+                        >
+                          {loadingPdf === key ? '...' : '↓ Download'}
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
-              </div>
+              )}
             </div>
           </div>
         )}
@@ -443,30 +655,37 @@ export default function Laporan() {
               <StatCard label="Total Keluar (semua bahan)" value={`${sItems.reduce((s, d) => s + d.v2, 0)} unit`} />
             </div>
 
-            <div style={{ marginBottom: 24, padding: '20px 20px 12px', borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--line)' }}>
-              <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 14 }}>Grafik Stok Masuk vs Keluar</div>
-              <HBarChart items={sItems} color1="#6B4F3A" color2="#4A7C59" legend={['Masuk','Keluar']} />
-            </div>
-
             <div style={{ padding: 20, borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--line)' }}>
-              <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 14 }}>Tabel Detail</div>
+              <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>Tabel Detail</div>
+              <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 14 }}>
+                {hoverStok ? `Sedang disorot: ${hoverStok}` : 'Arahkan kursor ke baris untuk melihat bahan yang disorot.'}
+              </div>
               <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
+                <table style={{ width: '100%', fontSize: 14, borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ color: 'var(--text-muted)' }}>
-                      {['Bahan','Satuan','Masuk','Keluar','Selisih'].map((h) => (
-                        <th key={h} style={{ textAlign: 'left', padding: '6px 8px', borderBottom: '1px solid var(--line)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{h}</th>
+                      {['Bahan','Masuk','Keluar','Stok Saat Ini','Satuan'].map((h) => (
+                        <th key={h} style={{ textAlign: 'left', padding: '10px 14px', borderBottom: '1px solid var(--line)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {(stok.data || []).map((d, i) => (
-                      <tr key={i}>
-                        <td style={{ padding: '7px 8px', borderBottom: '1px solid var(--line)' }}>{d.nama_bahan}</td>
-                        <td style={{ padding: '7px 8px', borderBottom: '1px solid var(--line)', color: 'var(--text-muted)' }}>{d.satuan}</td>
-                        <td style={{ padding: '7px 8px', borderBottom: '1px solid var(--line)', color: '#4A7C59' }}>{d.total_masuk}</td>
-                        <td style={{ padding: '7px 8px', borderBottom: '1px solid var(--line)', color: '#B05A5A' }}>{d.total_keluar}</td>
-                        <td style={{ padding: '7px 8px', borderBottom: '1px solid var(--line)', fontWeight: 600 }}>{d.total_masuk - d.total_keluar}</td>
+                      <tr
+                        key={i}
+                        onMouseEnter={() => setHoverStok(d.nama_bahan)}
+                        onMouseLeave={() => setHoverStok(null)}
+                        style={{
+                          background: hoverStok === d.nama_bahan ? 'rgba(107,79,58,0.16)' : 'transparent',
+                          transition: 'background 160ms ease',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <td style={{ padding: '12px 14px', borderBottom: '1px solid var(--line)', fontWeight: 600 }}>{d.nama_bahan}</td>
+                        <td style={{ padding: '12px 14px', borderBottom: '1px solid var(--line)', color: '#4A7C59' }}>{d.total_masuk}</td>
+                        <td style={{ padding: '12px 14px', borderBottom: '1px solid var(--line)', color: '#B05A5A' }}>{d.total_keluar}</td>
+                        <td style={{ padding: '12px 14px', borderBottom: '1px solid var(--line)', fontWeight: 700 }}>{d.stok_saat_ini}</td>
+                        <td style={{ padding: '12px 14px', borderBottom: '1px solid var(--line)', color: 'var(--text-muted)' }}>{d.satuan}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -479,48 +698,66 @@ export default function Laporan() {
         {/* ================================================================ */}
         {/* TAB: OPNAME                                                       */}
         {/* ================================================================ */}
-        {!loading && tab === 'opname' && opname && (
+        {!loading && tab === 'opname' && (
           <div>
-            <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
-              <StatCard label="Total Jenis Bahan" value={oItems.length} />
-              <StatCard label="Stok Habis (0)"    value={`${(opname.data || []).filter((d) => d.stok_saat_ini === 0).length} item`} />
-            </div>
-
-            <div style={{ marginBottom: 24, padding: '20px 20px 12px', borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--line)' }}>
-              <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 14 }}>Grafik Stok Saat Ini</div>
-              <HBarChart items={oItems} color1="#4A7C59" />
-            </div>
-
-            <div style={{ padding: 20, borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--line)' }}>
-              <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 14 }}>
-                Tabel Stock Opname — {MONTHS[bulan - 1]} {tahun}
+            {opnameDownloadError && (
+              <div style={{ marginBottom: 14, padding: '10px 14px', borderRadius: 8, background: 'rgba(224,82,82,0.1)', border: '1px solid rgba(224,82,82,0.3)', color: '#e05252', fontSize: 13 }}>
+                {opnameDownloadError}
               </div>
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ color: 'var(--text-muted)' }}>
-                      {['Bahan','Satuan','Masuk Bulan Ini','Keluar Bulan Ini','Stok Saat Ini'].map((h) => (
-                        <th key={h} style={{ textAlign: 'left', padding: '6px 8px', borderBottom: '1px solid var(--line)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(opname.data || []).map((d, i) => (
-                      <tr key={i}>
-                        <td style={{ padding: '7px 8px', borderBottom: '1px solid var(--line)' }}>{d.nama_bahan}</td>
-                        <td style={{ padding: '7px 8px', borderBottom: '1px solid var(--line)', color: 'var(--text-muted)' }}>{d.satuan}</td>
-                        <td style={{ padding: '7px 8px', borderBottom: '1px solid var(--line)', color: '#4A7C59' }}>{d.masuk_bulan}</td>
-                        <td style={{ padding: '7px 8px', borderBottom: '1px solid var(--line)', color: '#B05A5A' }}>{d.keluar_bulan}</td>
-                        <td style={{ padding: '7px 8px', borderBottom: '1px solid var(--line)', fontWeight: 700,
-                          color: d.stok_saat_ini === 0 ? '#e05252' : 'var(--text)'
-                        }}>
-                          {d.stok_saat_ini}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            )}
+
+            {/* List header */}
+            <div style={{ borderRadius: 12, border: '1px solid var(--line)', overflow: 'hidden' }}>
+              <div style={{
+                display: 'grid', gridTemplateColumns: '1fr auto',
+                padding: '9px 18px', background: 'var(--surface)', borderBottom: '1px solid var(--line)',
+              }}>
+                <span style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 600 }}>
+                  Stock Opname — {MONTHS[bulan - 1]} {tahun}
+                </span>
+                <span style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 600 }}>Aksi</span>
               </div>
+
+              {(!opname || oItems.length === 0) && (
+                <div style={{ padding: '32px 18px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+                  Tidak ada stock opname pada {MONTHS[bulan - 1]} {tahun}
+                </div>
+              )}
+
+              {oItems.map((item, i) => {
+                const key = `opname-${item.id_opname}`;
+                const tgl = new Date(item.tanggal_opname + 'T00:00:00');
+                const tglLabel = `${tgl.getDate()} ${MONTHS[tgl.getMonth()]} ${tgl.getFullYear()}`;
+                return (
+                  <div
+                    key={item.id_opname}
+                    style={{
+                      display: 'grid', gridTemplateColumns: '1fr auto',
+                      alignItems: 'center', padding: '13px 18px',
+                      borderBottom: i < oItems.length - 1 ? '1px solid var(--line)' : 'none',
+                      gap: 12,
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontWeight: 500, fontSize: 14 }}>
+                        Stock Opname Tanggal ({tglLabel})
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>
+                        {item.nama_pegawai && <span>Petugas: {item.nama_pegawai}</span>}
+                        {item.keterangan && <span style={{ marginLeft: 10 }}>· {item.keterangan}</span>}
+                      </div>
+                    </div>
+                    <button
+                      className="kp-btn kp-btn-sm"
+                      style={{ fontSize: 11, minWidth: 105, flexShrink: 0 }}
+                      disabled={loadingPdf === key}
+                      onClick={() => downloadOpnamePDF(item.id_opname, item.tanggal_opname)}
+                    >
+                      {loadingPdf === key ? '...' : '↓ Download PDF'}
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

@@ -1,6 +1,8 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import LogoKupiku from '../assets/kupikuLogo.png';
+import CartDrawer from './CartDrawer.jsx';
+import { useCart } from '../context/CartContext.jsx';
 
 const BASE = import.meta.env.VITE_API_URL || '/api';
 
@@ -16,6 +18,9 @@ export default function PublicNavbar({
 }) {
   const nav = useNavigate();
   const loc = useLocation();
+  const { items } = useCart();
+  const [cartOpen, setCartOpen] = React.useState(false);
+  const [trackWarning, setTrackWarning] = React.useState(false);
   const pathname = loc.pathname || '';
   let activeKey = active;
   if (!activeKey) {
@@ -26,27 +31,13 @@ export default function PublicNavbar({
     else activeKey = '';
   }
 
-  const [user, setUser] = React.useState(() => {
+  const [user] = React.useState(() => {
     try { return JSON.parse(localStorage.getItem('kupiku_user') || ''); } catch { return null; }
   });
 
   const initials = user?.name
     ? user.name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()
     : '';
-
-  async function handleLogout() {
-    const token = localStorage.getItem('kupiku_token');
-    try {
-      await fetch(`${BASE}/logout`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      });
-    } catch {}
-    localStorage.removeItem('kupiku_user');
-    localStorage.removeItem('kupiku_token');
-    setUser(null);
-    nav('/');
-  }
 
   function handleDiscover() {
     if (onDiscoverClick) return onDiscoverClick();
@@ -74,88 +65,116 @@ export default function PublicNavbar({
   }
 
   function handleTrack() {
+    if (!user) {
+      setTrackWarning(true);
+      setTimeout(() => setTrackWarning(false), 3000);
+      return;
+    }
     nav('/track');
   }
 
   return (
-    <nav style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '24px 56px', borderBottom: '1px solid var(--line)',
-      position: 'relative', zIndex: 2
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', height: '100%' }} onClick={handleDiscover}>
-          <img
-            src={LogoKupiku}
-            alt="Kupiku Logo"
-            style={{ width: 130, height: 130, objectFit: 'contain', margin: '-35px 0' }}
-          />
+    <>
+      <nav style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '24px 56px', borderBottom: '1px solid var(--line)',
+        position: 'relative', zIndex: 2
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', height: '100%' }} onClick={handleDiscover}>
+            <img
+              src={LogoKupiku}
+              alt="Kupiku Logo"
+              style={{ width: 130, height: 130, objectFit: 'contain', margin: '-35px 0' }}
+            />
+          </div>
         </div>
-      </div>
-      <div style={{ display: 'flex', gap: 36, fontSize: 13, color: 'var(--text-muted)' }}>
-        {(() => {
-          function NavItem({ children, active, onClick }) {
-            const [hover, setHover] = React.useState(false);
-            const defaultColor = 'var(--text-muted)';
-            const activeColor = 'var(--text)';
-            const style = { color: active ? activeColor : (hover ? activeColor : defaultColor), cursor: 'pointer' };
-            return (
-              <span
-                style={style}
-                onClick={onClick}
-                onMouseEnter={() => setHover(true)}
-                onMouseLeave={() => setHover(false)}
-              >
-                {children}
-              </span>
-            );
-          }
+        <div style={{ display: 'flex', gap: 36, fontSize: 13, color: 'var(--text-muted)' }}>
+          {(() => {
+            function NavItem({ children, active, onClick }) {
+              const [hover, setHover] = React.useState(false);
+              const defaultColor = 'var(--text-muted)';
+              const activeColor = 'var(--text)';
+              const style = { color: active ? activeColor : (hover ? activeColor : defaultColor), cursor: 'pointer' };
+              return (
+                <span
+                  style={style}
+                  onClick={onClick}
+                  onMouseEnter={() => setHover(true)}
+                  onMouseLeave={() => setHover(false)}
+                >
+                  {children}
+                </span>
+              );
+            }
 
-          return (
+            return (
+              <>
+                <NavItem active={activeKey === 'discover'} onClick={handleDiscover}>Discover</NavItem>
+                <NavItem active={activeKey === 'menu'} onClick={handleMenu}>Menu</NavItem>
+                <NavItem active={activeKey === 'mood'} onClick={handleMood}>Mood</NavItem>
+                <NavItem active={activeKey === 'track'} onClick={handleTrack}>Track Order</NavItem>
+              </>
+            );
+          })()}
+        </div>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          {user ? (
             <>
-              <NavItem active={activeKey === 'discover'} onClick={handleDiscover}>Discover</NavItem>
-              <NavItem active={activeKey === 'menu'} onClick={handleMenu}>Menu</NavItem>
-              <NavItem active={activeKey === 'mood'} onClick={handleMood}>Mood</NavItem>
-              <NavItem active={activeKey === 'track'} onClick={handleTrack}>Track Order</NavItem>
+              <button
+                className="kp-btn kp-btn-sm"
+                onClick={() => setCartOpen(true)}
+                style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+              >
+                Cart
+                <span style={{
+                  minWidth: 18, height: 18, borderRadius: '50%',
+                  background: 'rgba(255,255,255,0.15)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700,
+                }}>
+                  {items.length}
+                </span>
+              </button>
+              <div
+                onClick={() => nav('/profile')}
+                title={user.name}
+                style={{
+                  width: 32, height: 32, borderRadius: '50%', cursor: 'pointer', flexShrink: 0,
+                  background: 'linear-gradient(135deg, #6B4F3A, #2B2010)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 12, fontWeight: 700, color: 'var(--text)',
+                  border: '1px solid rgba(168,131,95,0.35)',
+                }}
+              >
+                {initials}
+              </div>
             </>
-          );
-        })()}
+          ) : (
+            <button className="kp-btn kp-btn-sm" onClick={handleAdmin}>Sign In</button>
+          )}
+        </div>
+      </nav>
+      <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
+
+      {/* Warning: belum login saat klik Track Order */}
+      <div style={{
+        position: 'fixed', top: 80, left: '50%', transform: `translateX(-50%) translateY(${trackWarning ? 0 : -12}px)`,
+        opacity: trackWarning ? 1 : 0, pointerEvents: 'none',
+        transition: 'opacity 220ms ease, transform 220ms ease',
+        zIndex: 100,
+        background: 'var(--surface)', border: '1px solid var(--line)',
+        borderRadius: 10, padding: '12px 20px',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.35)',
+        fontSize: 13, color: 'var(--text)', whiteSpace: 'nowrap',
+        display: 'flex', alignItems: 'center', gap: 10,
+      }}>
+        <span style={{ fontSize: 16 }}>🔒</span>
+        <span>
+          <strong>Sign In</strong> terlebih dahulu untuk melihat Orderan anda
+        </span>
       </div>
-      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-        {user ? (
-          <>
-            <div
-              onClick={() => nav('/profile')}
-              title={user.name}
-              style={{
-                width: 32, height: 32, borderRadius: '50%', cursor: 'pointer', flexShrink: 0,
-                background: 'linear-gradient(135deg, #6B4F3A, #2B2010)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 12, fontWeight: 700, color: 'var(--text)',
-                border: '1px solid rgba(168,131,95,0.35)',
-              }}
-            >
-              {initials}
-            </div>
-            <span
-              style={{ fontSize: 13, color: 'var(--text-muted)', cursor: 'pointer' }}
-              onClick={() => nav('/profile')}
-            >
-              {user.name?.split(' ')[0]}
-            </span>
-            <button className="kp-btn kp-btn-sm" onClick={handleLogout}>Keluar</button>
-          </>
-        ) : (
-          <>
-            {showAdmin && (
-              <span style={{ fontSize: 13, color: 'var(--text-muted)', cursor: 'pointer' }} onClick={handleAdmin}>Sign in</span>
-            )}
-            {showOrder && (
-              <button className="kp-btn kp-btn-sm" onClick={handleOrder}>Order</button>
-            )}
-          </>
-        )}
-      </div>
-    </nav>
+    </>
   );
 }

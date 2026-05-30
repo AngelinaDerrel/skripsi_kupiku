@@ -31,6 +31,7 @@ export default function StokMasuk() {
 
   const [inputs, setInputs] = useState({});
   const [savingId, setSavingId] = useState(null);
+  const [savingAll, setSavingAll] = useState(false);
 
   const [history, setHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -130,6 +131,66 @@ export default function StokMasuk() {
     }
   }
 
+  async function handleSimpanSemua() {
+    let id_pegawai = null;
+    try {
+      const u = JSON.parse(localStorage.getItem('kupiku_user') || 'null');
+      if (u) id_pegawai = u.id_pegawai ?? u.id ?? null;
+    } catch {}
+
+    const targets = filteredBahan.filter((b) => {
+      const jumlah = Number(inputs[b.id]?.jumlah);
+      return jumlah && jumlah >= 1;
+    });
+
+    if (targets.length === 0) {
+      showToast('Isi jumlah minimal satu bahan terlebih dahulu.', false);
+      return;
+    }
+
+    setSavingAll(true);
+    const results = await Promise.allSettled(
+      targets.map((bahan) => {
+        const inp = inputs[bahan.id] || {};
+        const payload = {
+          id_bahan: bahan.id,
+          jumlah: Number(inp.jumlah),
+          keterangan: inp.keterangan || '',
+          ...(id_pegawai ? { id_pegawai } : {}),
+        };
+        return api.post('stok-masuk', payload).then((created) => ({ bahan, created }));
+      })
+    );
+
+    const berhasil = results.filter((r) => r.status === 'fulfilled').map((r) => r.value);
+    const gagal = results.filter((r) => r.status === 'rejected');
+
+    if (berhasil.length > 0) {
+      setHistory((prev) => [
+        ...berhasil.map(({ bahan, created }) => ({
+          ...created,
+          bahan_baku: { nama_bahan: bahan.name, satuan_dasar: bahan.unit },
+        })),
+        ...prev,
+      ]);
+      setInputs((prev) => {
+        const next = { ...prev };
+        berhasil.forEach(({ bahan }) => { next[bahan.id] = { jumlah: '', keterangan: '' }; });
+        return next;
+      });
+    }
+
+    if (gagal.length === 0) {
+      showToast(`${berhasil.length} bahan berhasil disimpan.`, true);
+    } else if (berhasil.length === 0) {
+      showToast('Semua gagal disimpan. Coba lagi.', false);
+    } else {
+      showToast(`${berhasil.length} berhasil, ${gagal.length} gagal disimpan.`, false);
+    }
+
+    setSavingAll(false);
+  }
+
   const filteredBahan = useMemo(() => {
     if (!search.trim()) return bahanList;
     const q = search.toLowerCase();
@@ -150,6 +211,14 @@ export default function StokMasuk() {
               <div className="kp-eyebrow" style={{ fontSize: 10 }}>Staff · Stock</div>
               <h1 style={{ fontSize: 20, margin: '4px 0 0' }}>Stok masuk</h1>
             </div>
+            <button
+              className="kp-btn"
+              style={{ padding: '8px 20px', fontSize: 13, alignSelf: 'flex-end' }}
+              onClick={handleSimpanSemua}
+              disabled={savingAll || savingId !== null}
+            >
+              {savingAll ? 'Menyimpan...' : 'Simpan Semua'}
+            </button>
           </div>
 
           <div className="kp-card" style={{ overflowX: 'auto' }}>
@@ -185,7 +254,7 @@ export default function StokMasuk() {
 
             {!bahanLoading && !bahanError && filteredBahan.map((bahan, i) => {
               const inp = inputs[bahan.id] || { jumlah: '', keterangan: '' };
-              const isSaving = savingId === bahan.id;
+              const isSaving = savingId === bahan.id || savingAll;
               return (
                 <div
                   key={bahan.id}

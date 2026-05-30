@@ -118,10 +118,7 @@ export default function CartDrawer({ open, onClose }) {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 24,
               }}>☕</div>
-              <div style={{ fontSize: 14, fontWeight: 500 }}>Cart masih kosong</div>
-              <div style={{ fontSize: 12, color: 'var(--text-dim)', textAlign: 'center' }}>
-                Pilih minuman dari menu<br />dan tambahkan ke cart
-              </div>
+              <div style={{ fontSize: 14, fontWeight: 500 }}>Belum ada pesanan apapun dsnjssd[afnf]</div>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
