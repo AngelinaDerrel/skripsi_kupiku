@@ -133,12 +133,11 @@ export default function OrderTracking() {
         const list = Array.isArray(data) ? data : [];
         setOrders(list);
 
-        // Auto-select: first non-done order, otherwise first order
+        // Auto-select: first non-done order only
         const active = list.find(o => o.status !== 'done');
-        const pick   = active ?? list[0] ?? null;
-        if (pick) {
-          setSelectedCode(pick.kode_pesanan);
-          setLiveStatus(pick.status);
+        if (active) {
+          setSelectedCode(active.kode_pesanan);
+          setLiveStatus(active.status);
         }
       })
       .catch(() => setErrorList('Gagal memuat pesanan. Coba muat ulang halaman.'))
@@ -154,12 +153,28 @@ export default function OrderTracking() {
       try {
         const data = await api.get(`/pesanan/${selectedCode}`);
         if (data?.status) {
-          setLiveStatus(data.status);
-          // Update status in orders list too
-          setOrders(prev => prev.map(o =>
-            o.kode_pesanan === selectedCode ? { ...o, status: data.status } : o
-          ));
-          if (data.status === 'done') clearInterval(pollRef.current);
+          if (data.status === 'done') {
+            clearInterval(pollRef.current);
+            setOrders(prev => {
+              const updated = prev.map(o =>
+                o.kode_pesanan === selectedCode ? { ...o, status: data.status } : o
+              );
+              const nextActive = updated.find(o => o.status !== 'done' && o.kode_pesanan !== selectedCode);
+              if (nextActive) {
+                setSelectedCode(nextActive.kode_pesanan);
+                setLiveStatus(nextActive.status);
+              } else {
+                setSelectedCode(null);
+                setLiveStatus(null);
+              }
+              return updated;
+            });
+          } else {
+            setLiveStatus(data.status);
+            setOrders(prev => prev.map(o =>
+              o.kode_pesanan === selectedCode ? { ...o, status: data.status } : o
+            ));
+          }
         }
       } catch { /* silent */ }
     };
@@ -180,13 +195,10 @@ export default function OrderTracking() {
   if (!user || !token) return null;
 
   const firstName = user?.name ? user.name.split(' ')[0] : 'Kamu';
-  const selectedOrder = orders.find(o => o.kode_pesanan === selectedCode);
+  const activeOrders = orders.filter(o => o.status !== 'done');
+  const selectedOrder = activeOrders.find(o => o.kode_pesanan === selectedCode);
   const effectiveStatus = liveStatus ?? selectedOrder?.status ?? 'menunggu_pembayaran';
-  const info   = STATUS_INFO[effectiveStatus] || STATUS_INFO.menunggu_pembayaran;
-  const isDone = effectiveStatus === 'done';
-
-  // Other orders (not currently selected)
-  const otherOrders = orders.filter(o => o.kode_pesanan !== selectedCode);
+  const info = STATUS_INFO[effectiveStatus] || STATUS_INFO.menunggu_pembayaran;
 
   return (
     <div className="kp" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
@@ -236,15 +248,17 @@ export default function OrderTracking() {
           <div style={{ color: '#e05a5a', fontSize: 14, marginTop: 8 }}>{errorList}</div>
         )}
 
-        {/* ── No orders ── */}
-        {!loadingList && !errorList && orders.length === 0 && (
+        {/* ── No active orders ── */}
+        {!loadingList && !errorList && activeOrders.length === 0 && (
           <div style={{ maxWidth: 360, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, marginTop: 8 }}>
-            <h1 className="kp-display" style={{ fontSize: 36, lineHeight: 1.1, margin: 0 }}>Belum ada</h1>
+            <h1 className="kp-display" style={{ fontSize: 36, lineHeight: 1.1, margin: 0 }}>Tidak Ada</h1>
             <h1 className="kp-display" style={{ fontSize: 36, lineHeight: 1.1, margin: '0 0 8px', fontStyle: 'italic', color: 'var(--brown-3)' }}>
-              pesanan aktif
+              Pesanan Aktif
             </h1>
             <p style={{ fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.65, margin: 0 }}>
-              Kamu belum memiliki pesanan. Yuk pesan kopi favoritmu sekarang!
+              {orders.length > 0
+                ? 'Semua pesananmu sudah selesai. Terima kasih telah berkunjung ke Kupiku!'
+                : 'Kamu belum memiliki pesanan aktif. Yuk pesan kopi favoritmu sekarang!'}
             </p>
             <button className="kp-btn" onClick={() => nav('/menu')}>
               Pesan Sekarang
@@ -257,24 +271,13 @@ export default function OrderTracking() {
           <div style={{ width: '100%', maxWidth: 480, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
 
             {/* Title */}
-            {isDone ? (
-              <>
-                <h1 className="kp-display" style={{ fontSize: 40, lineHeight: 1.1, margin: '0 0 4px' }}>Selamat menikmati,</h1>
-                <h1 className="kp-display" style={{ fontSize: 40, lineHeight: 1.1, margin: '0 0 28px', fontStyle: 'italic', color: 'var(--brown-3)' }}>
-                  {firstName}!
-                </h1>
-              </>
-            ) : (
-              <>
-                <h1 className="kp-display" style={{ fontSize: 40, lineHeight: 1.1, margin: '0 0 4px' }}>Status</h1>
-                <h1 className="kp-display" style={{ fontSize: 40, lineHeight: 1.1, margin: '0 0 28px', fontStyle: 'italic', color: 'var(--brown-3)' }}>
-                  Pesananmu
-                </h1>
-              </>
-            )}
+            <h1 className="kp-display" style={{ fontSize: 40, lineHeight: 1.1, margin: '0 0 4px' }}>Status</h1>
+            <h1 className="kp-display" style={{ fontSize: 40, lineHeight: 1.1, margin: '0 0 28px', fontStyle: 'italic', color: 'var(--brown-3)' }}>
+              Pesananmu
+            </h1>
 
-            {/* Order selector — shown when customer has multiple orders */}
-            {orders.length > 1 && (
+            {/* Order selector — shown when customer has multiple active orders */}
+            {activeOrders.length > 1 && (
               <div style={{
                 width: '100%', marginBottom: 24,
                 display: 'flex', flexDirection: 'column', gap: 6,
@@ -283,7 +286,7 @@ export default function OrderTracking() {
                   Pilih Pesanan
                 </div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  {orders.map(o => {
+                  {activeOrders.map(o => {
                     const isActive = o.kode_pesanan === selectedCode;
                     const statusIdx = STATUS_ORDER.indexOf(o.status);
                     const accent = STATUS_INFO[o.status]?.accent || 'var(--brown-3)';
@@ -394,20 +397,13 @@ export default function OrderTracking() {
             </div>
 
             {/* Auto-refresh notice */}
-            {!isDone && (
-              <div style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--text-dim)', display: 'inline-block' }} />
-                Status diperbarui otomatis setiap 5 detik
-              </div>
-            )}
+            <div style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--text-dim)', display: 'inline-block' }} />
+              Status diperbarui otomatis setiap 5 detik
+            </div>
 
             {/* Actions */}
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
-              {isDone && (
-                <button className="kp-btn" onClick={() => nav('/menu')}>
-                  Pesan Lagi
-                </button>
-              )}
               <button className="kp-btn kp-btn-ghost" onClick={() => nav('/menu')}>
                 ← Kembali ke Menu
               </button>

@@ -18,6 +18,7 @@ export default function Staff() {
   const [staffLoading, setStaffLoading] = useState(false);
   const [staffError, setStaffError] = useState(null);
   const [editingId, setEditingId] = useState(null);
+  const [searchStaff, setSearchStaff] = useState('');
 
   const raw = localStorage.getItem('kupiku_user');
   let currentRole = null;
@@ -75,34 +76,39 @@ export default function Staff() {
     }
   }
 
+  // Load staff — debounced, delegated to backend search endpoint
   useEffect(() => {
     let mounted = true;
-    async function fetchStaff() {
-      setStaffLoading(true);
-      setStaffError(null);
-      try {
-        const data = await api.get('pegawai');
-        if (!mounted) return;
-        const arr = Array.isArray(data) ? data : (data?.data ?? []);
-        const mapped = arr
-          .map((it) => ({
-            id: it.id_pegawai,
-            name: it.nama_pegawai || '',
-            role: it.Jabatan?.jabatan || it.jabatan?.jabatan || '',
-            username: it.email_pegawai || '',
-          }))
-          .sort((a, b) => Number(a.id) - Number(b.id));
-        setList(mapped);
-      } catch (err) {
-        if (!mounted) return;
-        setStaffError(err?.message || 'Failed to load staff');
-      } finally {
-        if (mounted) setStaffLoading(false);
-      }
-    }
-    fetchStaff();
-    return () => { mounted = false; };
-  }, []);
+    setStaffLoading(true);
+    setStaffError(null);
+    const delay = searchStaff.trim() ? 350 : 0;
+    const timer = setTimeout(() => {
+      const endpoint = searchStaff.trim()
+        ? `pegawai/search?search=${encodeURIComponent(searchStaff.trim())}`
+        : 'pegawai';
+      api.get(endpoint)
+        .then((data) => {
+          if (!mounted) return;
+          const arr = Array.isArray(data) ? data : (data?.data ?? []);
+          setList(
+            arr
+              .map((it) => ({
+                id: it.id_pegawai,
+                name: it.nama_pegawai || '',
+                role: it.Jabatan?.jabatan || it.jabatan?.jabatan || '',
+                username: it.email_pegawai || '',
+              }))
+              .sort((a, b) => Number(a.id) - Number(b.id))
+          );
+        })
+        .catch((err) => {
+          if (!mounted) return;
+          setStaffError(err?.message || 'Failed to load staff');
+        })
+        .finally(() => { if (mounted) setStaffLoading(false); });
+    }, delay);
+    return () => { mounted = false; clearTimeout(timer); };
+  }, [searchStaff]);
 
   useEffect(() => {
     let mounted = true;
@@ -127,17 +133,45 @@ export default function Staff() {
 
   return (
     <AdminLayout>
-      <main style={{ flex: 1, padding: 24 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
+        <div style={{
+          padding: '18px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          borderBottom: '1px solid var(--line)',
+        }}>
           <div>
             <div className="kp-eyebrow" style={{ fontSize: 10 }}>Workspace · Staff</div>
             <h1 style={{ fontSize: 18, fontWeight: 500, margin: '4px 0 0' }}>Staff management</h1>
           </div>
-          {canAdd && (
-            <button className="kp-btn" onClick={() => { setEditingId(null); setName(''); setUsername(''); setPassword(''); setShowAdd(true); }}>+ New staff</button>
-          )}
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 8,
+              background: 'var(--surface)', border: '1px solid var(--line)', width: 260,
+            }}>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <circle cx="6" cy="6" r="4" stroke="var(--text-muted)" strokeWidth="1.4" />
+                <path d="M9 9l3 3" stroke="var(--text-muted)" strokeWidth="1.4" strokeLinecap="round" />
+              </svg>
+              <input
+                value={searchStaff}
+                onChange={(e) => setSearchStaff(e.target.value)}
+                placeholder="Search staff..."
+                style={{
+                  fontSize: 13, color: 'var(--text)', flex: 1,
+                  background: 'transparent', border: 'none', outline: 'none',
+                  fontFamily: 'var(--font-sans)',
+                }}
+              />
+              {searchStaff && (
+                <button onClick={() => setSearchStaff('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 16, padding: 0, lineHeight: 1 }}>×</button>
+              )}
+            </div>
+            {canAdd && (
+              <button className="kp-btn" onClick={() => { setEditingId(null); setName(''); setUsername(''); setPassword(''); setShowAdd(true); }}>+ New staff</button>
+            )}
+          </div>
         </div>
 
+        <div style={{ flex: 1, padding: '24px 32px', overflow: 'auto' }}>
         <div className="kp-card" style={{ padding: 0 }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, tableLayout: 'fixed' }}>
             <colgroup>
@@ -164,7 +198,9 @@ export default function Staff() {
                 <tr><td colSpan={5} style={{ padding: 20, textAlign: 'center', color: 'var(--danger)', fontSize: 13 }}>{staffError}</td></tr>
               )}
               {!staffLoading && !staffError && list.length === 0 && (
-                <tr><td colSpan={5} style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>Belum ada staff. Klik "+ New staff" untuk menambah.</td></tr>
+                <tr><td colSpan={5} style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+                  {searchStaff ? `Tidak ditemukan "${searchStaff}"` : 'Belum ada staff. Klik "+ New staff" untuk menambah.'}
+                </td></tr>
               )}
               {!staffLoading && list.map((s) => (
                 <tr key={s.id} style={{ borderBottom: '1px solid var(--line)' }}>
@@ -199,6 +235,7 @@ export default function Staff() {
               ))}
             </tbody>
           </table>
+        </div>
         </div>
       </main>
 

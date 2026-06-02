@@ -80,29 +80,13 @@ export default function Stock({ layout = 'staff' }) {
   const [downloadLoading, setDownloadLoading] = useState(false);
   const [downloadError, setDownloadError] = useState('');
 
-  // Load bahan baku list (admin)
+  // Load stok-masuk totals once (no search needed)
   useEffect(() => {
     if (!isAdmin) return undefined;
     let mounted = true;
-    async function loadBahan() {
-      setBahanLoading(true);
-      setBahanError(null);
-      try {
-        const [bahanData, stokData] = await Promise.all([
-          api.get('bahanbaku'),
-          api.get('stok-masuk'),
-        ]);
+    api.get('stok-masuk')
+      .then((stokData) => {
         if (!mounted) return;
-        const arr = Array.isArray(bahanData) ? bahanData : (bahanData?.data ?? []);
-        const mapped = arr
-          .map((item, idx) => ({
-            id: item.id_bahan ?? item.id ?? idx,
-            name: item.nama_bahan ?? item.name ?? '',
-            unit: item.satuan_dasar ?? item.unit ?? '',
-          }))
-          .filter((item) => item.id && item.name);
-        setBahanList(mapped);
-
         const stokArr = Array.isArray(stokData) ? stokData : (stokData?.data ?? []);
         const totals = {};
         stokArr.forEach((e) => {
@@ -110,16 +94,44 @@ export default function Stock({ layout = 'staff' }) {
           totals[id] = (totals[id] || 0) + Number(e.jumlah || 0);
         });
         setStokMasukTotals(totals);
-      } catch (err) {
-        if (!mounted) return;
-        setBahanError(err?.message || 'Gagal memuat bahan baku');
-      } finally {
-        if (mounted) setBahanLoading(false);
-      }
-    }
-    loadBahan();
+      })
+      .catch(() => {});
     return () => { mounted = false; };
   }, [isAdmin]);
+
+  // Load bahan baku — debounced, delegated to backend search endpoint
+  useEffect(() => {
+    if (!isAdmin) return undefined;
+    let mounted = true;
+    setBahanLoading(true);
+    setBahanError(null);
+    const delay = searchAdmin.trim() ? 350 : 0;
+    const timer = setTimeout(() => {
+      const endpoint = searchAdmin.trim()
+        ? `bahanbaku/search?search=${encodeURIComponent(searchAdmin.trim())}`
+        : 'bahanbaku';
+      api.get(endpoint)
+        .then((bahanData) => {
+          if (!mounted) return;
+          const arr = Array.isArray(bahanData) ? bahanData : (bahanData?.data ?? []);
+          setBahanList(
+            arr
+              .map((item, idx) => ({
+                id: item.id_bahan ?? item.id ?? idx,
+                name: item.nama_bahan ?? item.name ?? '',
+                unit: item.satuan_dasar ?? item.unit ?? '',
+              }))
+              .filter((item) => item.id && item.name)
+          );
+        })
+        .catch((err) => {
+          if (!mounted) return;
+          setBahanError(err?.message || 'Gagal memuat bahan baku');
+        })
+        .finally(() => { if (mounted) setBahanLoading(false); });
+    }, delay);
+    return () => { mounted = false; clearTimeout(timer); };
+  }, [isAdmin, searchAdmin]);
 
   // Load riwayat stok masuk (admin, only when tab is active)
   useEffect(() => {
@@ -374,23 +386,49 @@ export default function Stock({ layout = 'staff' }) {
 
   // ─── ADMIN / OWNER VIEW ──────────────────────────────────────────────────────
   if (isAdmin) {
-    const filteredBahan = searchAdmin.trim()
-      ? bahanList.filter((b) => b.name.toLowerCase().includes(searchAdmin.toLowerCase()) || String(b.id).includes(searchAdmin))
-      : bahanList;
-
     return (
       <Layout>
-        <div style={{ padding: 24 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+        <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
+          <div style={{
+            padding: '18px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            borderBottom: '1px solid var(--line)',
+          }}>
             <div>
               <div className="kp-eyebrow" style={{ fontSize: 10 }}>{headerLabel}</div>
               <h1 style={{ fontSize: 20, margin: '4px 0 0' }}>Stock</h1>
             </div>
-            {activeAdminTab === 'bahan' && (
-              <button className="kp-btn" onClick={openCreateModal}>+ New bahan</button>
-            )}
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              {activeAdminTab === 'bahan' && (
+                <>
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 8,
+                    background: 'var(--surface)', border: '1px solid var(--line)', width: 260,
+                  }}>
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                      <circle cx="6" cy="6" r="4" stroke="var(--text-muted)" strokeWidth="1.4" />
+                      <path d="M9 9l3 3" stroke="var(--text-muted)" strokeWidth="1.4" strokeLinecap="round" />
+                    </svg>
+                    <input
+                      value={searchAdmin}
+                      onChange={(e) => setSearchAdmin(e.target.value)}
+                      placeholder="Cari bahan baku..."
+                      style={{
+                        fontSize: 13, color: 'var(--text)', flex: 1,
+                        background: 'transparent', border: 'none', outline: 'none',
+                        fontFamily: 'var(--font-sans)',
+                      }}
+                    />
+                    {searchAdmin && (
+                      <button onClick={() => setSearchAdmin('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 16, padding: 0, lineHeight: 1 }}>×</button>
+                    )}
+                  </div>
+                  <button className="kp-btn" onClick={openCreateModal}>+ New bahan</button>
+                </>
+              )}
+            </div>
           </div>
 
+          <div style={{ flex: 1, padding: '24px 32px', overflow: 'auto' }}>
           {/* Tab switcher */}
           <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--line)', marginBottom: 18 }}>
             {[['bahan', 'Bahan Baku'], ['riwayat', 'Riwayat Stok Masuk']].map(([key, label]) => (
@@ -418,28 +456,6 @@ export default function Stock({ layout = 'staff' }) {
           {/* ── Tab: Bahan Baku ── */}
           {activeAdminTab === 'bahan' && (
             <>
-              <div style={{ marginBottom: 14 }}>
-                <div style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 8,
-                  padding: '8px 12px', borderRadius: 8,
-                  background: 'var(--surface)', border: '1px solid var(--line)', width: 280,
-                }}>
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                    <circle cx="6" cy="6" r="4" stroke="var(--text-muted)" strokeWidth="1.4" />
-                    <path d="M9 9l3 3" stroke="var(--text-muted)" strokeWidth="1.4" strokeLinecap="round" />
-                  </svg>
-                  <input
-                    value={searchAdmin}
-                    onChange={(e) => setSearchAdmin(e.target.value)}
-                    placeholder="Cari bahan baku..."
-                    style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', color: 'var(--text)', fontSize: 13 }}
-                  />
-                  {searchAdmin && (
-                    <button onClick={() => setSearchAdmin('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 16, padding: 0, lineHeight: 1 }}>×</button>
-                  )}
-                </div>
-              </div>
-
               <div className="kp-card" style={{ overflow: 'hidden' }}>
                 <div style={{
                   display: 'grid',
@@ -458,18 +474,18 @@ export default function Stock({ layout = 'staff' }) {
                 {!bahanLoading && bahanError && (
                   <div style={{ padding: 18, textAlign: 'center', color: 'var(--bad)', fontSize: 13 }}>{bahanError}</div>
                 )}
-                {!bahanLoading && !bahanError && filteredBahan.length === 0 && (
+                {!bahanLoading && !bahanError && bahanList.length === 0 && (
                   <div style={{ padding: 18, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
                     {searchAdmin ? `Tidak ditemukan "${searchAdmin}"` : 'Data bahan baku kosong.'}
                   </div>
                 )}
 
-                {!bahanLoading && !bahanError && filteredBahan.map((item, i) => (
+                {!bahanLoading && !bahanError && bahanList.map((item, i) => (
                   <div key={item.id} style={{
                     display: 'grid',
                     gridTemplateColumns: '100px 1.6fr 100px 1fr 180px',
                     padding: '14px 18px',
-                    borderBottom: i < filteredBahan.length - 1 ? '1px solid var(--line)' : 'none',
+                    borderBottom: i < bahanList.length - 1 ? '1px solid var(--line)' : 'none',
                     fontSize: 13, alignItems: 'center',
                   }}>
                     <span className="kp-mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{item.id}</span>
@@ -514,21 +530,6 @@ export default function Stock({ layout = 'staff' }) {
             return (
               <>
                 <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '7px 12px', borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--line)', minWidth: 220 }}>
-                    <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
-                      <circle cx="6" cy="6" r="4" stroke="var(--text-muted)" strokeWidth="1.4" />
-                      <path d="M9 9l3 3" stroke="var(--text-muted)" strokeWidth="1.4" strokeLinecap="round" />
-                    </svg>
-                    <input
-                      value={riwayatSearch}
-                      onChange={(e) => setRiwayatSearch(e.target.value)}
-                      placeholder="Cari nama bahan..."
-                      style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', color: 'var(--text)', fontSize: 12 }}
-                    />
-                    {riwayatSearch && (
-                      <button onClick={() => setRiwayatSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 16, padding: 0, lineHeight: 1 }}>×</button>
-                    )}
-                  </div>
                   <select value={riwayatTanggal} onChange={(e) => setRiwayatTanggal(Number(e.target.value))} style={selStyle}>
                     <option value={0}>Semua Tanggal</option>
                     {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((d) => (
@@ -610,7 +611,8 @@ export default function Stock({ layout = 'staff' }) {
               </>
             );
           })()}
-        </div>
+          </div>
+        </main>
 
         {/* Modal: form bahan baku */}
         {isFormOpen && (
