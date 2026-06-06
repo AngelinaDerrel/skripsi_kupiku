@@ -4,6 +4,10 @@ import { useEffect } from 'react';
 import Map from '../components/Map';
 import PublicNavbar from '../components/PublicNavbar.jsx';
 import cupImage from '../assets/cup.jpg';
+import foto1 from '../assets/foto1.jpg';
+import foto2 from '../assets/foto2.jpg';
+import foto3 from '../assets/foto3.jpg';
+import foto4 from '../assets/foto4.jpg';
 
 export default function Landing() {
   const nav = useNavigate();
@@ -146,43 +150,39 @@ export default function Landing() {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div className="kp-img-placeholder" data-label="Kupiku · Interior" style={{ height: 180, borderRadius: 8 }} />
-            <div className="kp-img-placeholder" data-label="Kupiku · Barista" style={{ height: 180, borderRadius: 8 }} />
-            <div className="kp-img-placeholder" data-label="Kupiku · Roastery" style={{ height: 180, borderRadius: 8 }} />
-            <div className="kp-img-placeholder" data-label="Kupiku · Crowd" style={{ height: 180, borderRadius: 8 }} />
+            {[
+              { src: foto1 },
+              { src: foto2,},
+              { src: foto3, },
+              { src: foto4,  },
+            ].map(({ src, label }) => (
+              <div key={label} style={{ position: 'relative', height: 180, borderRadius: 8, overflow: 'hidden', background: 'var(--surface)' }}>
+                <img
+                  src={src}
+                  alt={label}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }}
+                />
+                <span style={{
+                  position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)',
+                  background: 'rgba(20,14,10,0.72)', backdropFilter: 'blur(6px)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 4, padding: '4px 10px',
+                  fontFamily: 'var(--font-mono)', fontSize: 10,
+                  color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase',
+                  whiteSpace: 'nowrap',
+                }}>{label}</span>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Map preview section (design only) */}
+      {/* Map preview section */}
       <section id="maps" style={{ padding: '56px 56px', borderTop: '1px solid var(--line)' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 40, alignItems: 'start' }}>
-          <div>
-            <div className="kp-eyebrow" style={{ marginBottom: 12 }}>Find us</div>
-            <h3 className="kp-display" style={{ fontSize: 28, margin: 0 }}>Where to find Kupiku Coffee</h3>
-            <div className="kp-card" style={{ marginTop: 20, height: 320, borderRadius: 12, overflow: 'hidden', padding: 0 }}>
-              <Map endpoint="/api/locations/geojson" height={320} />
-            </div>
-          </div>
-
-          <aside style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div className="kp-eyebrow" style={{ marginBottom: 6 }}>Locations</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {STORES.map(s => (
-                <div key={s.id} className="kp-card" style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ fontSize: 14, fontWeight: 600 }}>{s.name}</div>
-                    <div className="kp-mono" style={{ fontSize: 12, color: 'var(--text-muted)' }}>• {s.id.toUpperCase()}</div>
-                  </div>
-                  <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{s.addr}</div>
-                      <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                        <button className="kp-btn kp-btn-ghost kp-btn-sm" onClick={() => nav('/admin#maps')}>View on map</button>
-                        <button className="kp-btn kp-btn-ghost kp-btn-sm" onClick={() => nav('/admin#maps')}>Get directions</button>
-                      </div>
-                </div>
-              ))}
-            </div>
-          </aside>
+        <div className="kp-eyebrow" style={{ marginBottom: 12 }}>Find us</div>
+        <h3 className="kp-display" style={{ fontSize: 28, margin: 0 }}>Where to find Kupiku Coffee</h3>
+        <div className="kp-card" style={{ marginTop: 20, height: 400, borderRadius: 12, overflow: 'hidden', padding: 0 }}>
+          <Map endpoint="/api/locations/geojson" height={400} />
         </div>
       </section>
 
@@ -216,15 +216,18 @@ export default function Landing() {
               from morning rituals to late-night focus.
             </p>
             <div style={{ display: 'flex', gap: 8, marginTop: 24 }}>
-              {['IG', 'TW', 'YT', 'TT'].map(s => (
-                <div key={s} style={{
+              {[
+                { label: 'IG', url: 'https://www.instagram.com/kupikucoffee?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==' },
+                { label: 'TT', url: 'https://www.tiktok.com/@kupikucoffee?_r=1&_t=ZS-96u7NqoMBiH' },
+              ].map(s => (
+                <a key={s.label} href={s.url} target="_blank" rel="noopener noreferrer" style={{
                   width: 32, height: 32, borderRadius: 8,
                   border: '1px solid var(--line)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontFamily: 'var(--font-mono)', fontSize: 10,
                   color: 'var(--text-muted)', letterSpacing: '0.05em',
-                  cursor: 'pointer'
-                }}>{s}</div>
+                  cursor: 'pointer', textDecoration: 'none',
+                }}>{s.label}</a>
               ))}
             </div>
           </div>
@@ -259,10 +262,10 @@ export default function Landing() {
             <div className="kp-eyebrow" style={{ fontSize: 10, marginBottom: 18 }}>Hours</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 12, color: 'var(--text-muted)' }}>
               {[
-                ['Mon — Thu', '07:00 — 22:00'],
-                ['Fri', '07:00 — 23:30'],
-                ['Sat', '08:00 — 23:30'],
-                ['Sun', '08:00 — 21:00'],
+                ['Mon — Thu', '08:00 — 24:00'],
+                ['Fri', '08:00 — 24:00'],
+                ['Sat', '08:00 — 24:00'],
+                ['Sun', '08:00 — 24:00'],
               ].map(([d, h]) => (
                 <div key={d} style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}>
                   <span>{d}</span>
@@ -274,12 +277,6 @@ export default function Landing() {
                 fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.08em',
                 textTransform: 'uppercase', color: 'var(--brown-3)'
               }}>
-                <span style={{
-                  width: 6, height: 6, borderRadius: '50%',
-                  background: 'var(--brown-3)',
-                  boxShadow: '0 0 0 3px rgba(168,131,95,0.18)'
-                }} />
-                Open now
               </div>
             </div>
           </div>

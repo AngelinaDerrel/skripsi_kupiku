@@ -71,10 +71,11 @@ export default function Menu() {
             id: item.id_menu ?? item.id ?? item.menu_id ?? idx,
             name: pickString(item, ['nama_menu', 'namaMenu', 'menu', 'name', 'nama', 'menu_name', 'menuName', 'judul', 'title']),
             price: item.harga ?? item.price ?? '',
-            recipe: recipeList.length ? recipeList : (item.resep || item.recipe || item.deskripsi || item.desc || ''),
+            deskripsi: item.deskripsi || item.desc || item.description || '',
             categoryLabel,
             categoryId: normalizeCategoryId(categoryLabel),
             foto: item.foto_menu || null,
+            temperature: item.temperature ?? 'both',
           };
         });
 
@@ -83,6 +84,14 @@ export default function Menu() {
           { id: 'all', label: 'All' },
           ...uniqueLabels.map((label) => ({ id: normalizeCategoryId(label), label })),
         ];
+
+        const saltedIdx = mapped.findIndex(i => i.name?.toLowerCase().includes('salted caramel'));
+        const macchiatoIdx = mapped.findIndex(i => i.name?.toLowerCase().includes('caramel macchiato'));
+        if (saltedIdx !== -1 && macchiatoIdx !== -1 && saltedIdx !== macchiatoIdx + 1) {
+          const [salted] = mapped.splice(saltedIdx, 1);
+          const insertAt = (saltedIdx < macchiatoIdx ? macchiatoIdx - 1 : macchiatoIdx) + 1;
+          mapped.splice(insertAt, 0, salted);
+        }
 
         setMenuItems(mapped);
         setCategories(nextCategories);
@@ -106,11 +115,6 @@ export default function Menu() {
     const numeric = Number(value);
     if (Number.isFinite(numeric)) return numeric.toLocaleString('id-ID');
     return value || '-';
-  };
-
-  const getRecipeItems = (value) => {
-    if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean);
-    return String(value || '').split(',').map((item) => item.trim()).filter(Boolean);
   };
 
   return (
@@ -140,7 +144,7 @@ export default function Menu() {
         </div>
         <div style={{ paddingBottom: 6 }}>
           <p style={{ fontSize: 15, lineHeight: 1.6, color: 'var(--text-muted)', maxWidth: 380, margin: 0 }}>
-            42 drinks across espresso, brew, milk and cold. Tap any item to see tasting notes
+            35 drinks across espresso, brew, milk and cold. Tap any item to see tasting notes
             and what mood it pairs with.
           </p>
           <div style={{
@@ -150,7 +154,7 @@ export default function Menu() {
           }}>
             <span>{items.length} menu</span>
             <span>·</span>
-            <span>{loading ? 'loading' : 'updated weekly'}</span>
+            <span>{loading ? 'loading...' : ''}</span>
           </div>
         </div>
       </div>
@@ -253,14 +257,14 @@ export default function Menu() {
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                     marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--line)'
                   }}>
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      {getRecipeItems(d.recipe).slice(0, 3).map((item) => (
-                        <span key={item} className="kp-mono" style={{
-                          fontSize: 10, color: 'var(--text-muted)',
-                          textTransform: 'uppercase', letterSpacing: '0.05em'
-                        }}>· {item}</span>
-                      ))}
-                    </div>
+                    <p style={{
+                      margin: 0, fontSize: 12, color: 'var(--text-muted)',
+                      lineHeight: 1.5, flex: 1, marginRight: 12,
+                      display: '-webkit-box', WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                    }}>
+                      {d.deskripsi || '—'}
+                    </p>
                     {/* Add to cart button */}
                     <button
                       onClick={() => handleAddClick(d)}
@@ -292,7 +296,7 @@ export default function Menu() {
           <div>
             <div style={{ fontSize: 16, fontWeight: 500 }}>Don't know what you're in the mood for?</div>
             <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>
-              Take the 30-second mood check-in — we'll narrow 42 drinks down to your top 4.
+              Take the 30-second mood check-in — we'll narrow 35 drinks down to your top 4.
             </div>
           </div>
           <button className="kp-btn" onClick={() => nav('/mood')}>

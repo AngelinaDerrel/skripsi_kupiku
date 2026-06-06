@@ -1,10 +1,5 @@
 import React, { useState } from 'react';
 
-const TEMP_OPTS = [
-  { value: 'ice', label: 'Ice' },
-  { value: 'hot', label: 'Hot' },
-];
-
 const SUGAR_OPTS = [
   { value: 'less', label: 'Less Sugar' },
   { value: 'normal', label: 'Normal' },
@@ -15,6 +10,11 @@ const ICE_OPTS = [
   { value: 'less', label: 'Less Ice' },
   { value: 'normal', label: 'Normal' },
   { value: 'extra', label: 'Extra Ice' },
+];
+
+const TEMP_OPTS = [
+  { value: 'ice', label: 'Ice' },
+  { value: 'hot', label: 'Hot' },
 ];
 
 function OptionGroup({ label, options, value, onChange }) {
@@ -48,8 +48,39 @@ function OptionGroup({ label, options, value, onChange }) {
   );
 }
 
+function TempFixed({ temperature }) {
+  const label = temperature === 'ice' ? 'Ice Only' : 'Hot Only';
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <div className="kp-eyebrow" style={{ marginBottom: 10, fontSize: 10 }}>SUHU</div>
+      <div
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          padding: '10px 18px',
+          borderRadius: 'var(--radius-sm)',
+          border: '1px solid rgba(168,131,95,0.6)',
+          background: 'rgba(107,79,58,0.22)',
+          color: 'var(--brown-3)',
+          fontSize: 13,
+          fontFamily: 'var(--font-sans)',
+          fontWeight: 500,
+          gap: 6,
+        }}
+      >
+        {label}
+        <span style={{ fontSize: 10, opacity: 0.7, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          · tidak dapat diubah
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export default function CustomizationModal({ item, onClose, onAdd }) {
-  const [temp, setTemp] = useState('ice');
+  const temperature = item.temperature ?? 'both';
+  const defaultTemp = temperature === 'hot' ? 'hot' : 'ice';
+  const [temp, setTemp] = useState(defaultTemp);
   const [sugar, setSugar] = useState('normal');
   const [ice, setIce] = useState('normal');
 
@@ -107,10 +138,13 @@ export default function CustomizationModal({ item, onClose, onAdd }) {
 
         <div style={{ height: 1, background: 'var(--line)', marginBottom: 24 }} />
 
-        <OptionGroup label="Suhu" options={TEMP_OPTS} value={temp} onChange={setTemp} />
-        <OptionGroup label="Tingkat Gula" options={SUGAR_OPTS} value={sugar} onChange={setSugar} />
+        {temperature === 'both'
+          ? <OptionGroup label="SUHU" options={TEMP_OPTS} value={temp} onChange={setTemp} />
+          : <TempFixed temperature={temperature} />
+        }
+        <OptionGroup label="TINGKAT GULA" options={SUGAR_OPTS} value={sugar} onChange={setSugar} />
         {temp === 'ice' && (
-          <OptionGroup label="Tingkat Es" options={ICE_OPTS} value={ice} onChange={setIce} />
+          <OptionGroup label="TINGKAT ES" options={ICE_OPTS} value={ice} onChange={setIce} />
         )}
 
         <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>

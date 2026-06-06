@@ -25,71 +25,16 @@ function fmtRp(val) {
   return 'Rp ' + Number(val).toLocaleString('id-ID');
 }
 
-function printNota(order) {
-  const timeStr = new Date(order.created_at).toLocaleString('id-ID', {
-    day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-  });
-
-  const kasir = (() => {
-    try { return JSON.parse(localStorage.getItem('kupiku_user') || '{}')?.name || '—'; } catch { return '—'; }
-  })();
-
-  const rows = (order.items || []).map((item, i) => {
-    const tags = [
-      SUHU[item.suhu] || item.suhu,
-      GULA[item.tingkat_gula] || item.tingkat_gula,
-      item.suhu === 'ice' ? (ES[item.tingkat_es] || item.tingkat_es) : null,
-    ].filter(Boolean).join(' · ');
-
-    return `<tr>
-      <td style="padding:6px 2px;vertical-align:top;width:14px;">${i + 1}.</td>
-      <td style="padding:6px 4px;vertical-align:top;">
-        <div style="font-weight:600;">${item.nama_menu}</div>
-        <div style="font-size:10px;color:#666;">${tags}</div>
-      </td>
-      <td style="padding:6px 2px;text-align:right;white-space:nowrap;vertical-align:top;">
-        Rp ${Number(item.harga_saat_pesan).toLocaleString('id-ID')}
-      </td>
-    </tr>`;
-  }).join('');
-
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
-<title>Nota · ${order.kode_pesanan}</title>
-<style>
-  *{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:'Courier New',monospace;font-size:12px;padding:24px 20px;max-width:320px;margin:0 auto;}
-  h1{font-size:20px;text-align:center;letter-spacing:3px;margin-bottom:3px;}
-  .sub{text-align:center;font-size:10px;color:#666;margin-bottom:16px;}
-  .sep{border:none;border-top:1px dashed #bbb;margin:12px 0;}
-  table{width:100%;border-collapse:collapse;}
-  .tot td{font-size:14px;font-weight:700;padding:8px 2px;border-top:1px dashed #bbb;}
-  .foot{text-align:center;font-size:10px;color:#666;margin-top:20px;line-height:2;}
-  @media print{body{padding:0;}}
-</style></head><body>
-<h1>KUPIKU</h1>
-<p class="sub">Nota Pembayaran</p>
-<hr class="sep">
-<table>
-  <tr><td>Kode Pesanan</td><td style="text-align:right;font-weight:700;">${order.kode_pesanan}</td></tr>
-  <tr><td>Waktu</td><td style="text-align:right;">${timeStr}</td></tr>
-  <tr><td>Pelanggan</td><td style="text-align:right;">${order.user?.name || '—'}</td></tr>
-  <tr><td>Kasir</td><td style="text-align:right;">${kasir}</td></tr>
-</table>
-<hr class="sep">
-<table>${rows}</table>
-<table class="tot">
-  <tr class="tot"><td colspan="2">TOTAL PEMBAYARAN</td>
-  <td style="text-align:right;">Rp ${Number(order.total_harga).toLocaleString('id-ID')}</td></tr>
-</table>
-<p class="foot">Terima kasih sudah berkunjung!<br>Selamat menikmati ☕<br><br>kupiku.coffee</p>
-</body></html>`;
-
-  const w = window.open('', '_blank', 'width=360,height=640,scrollbars=yes');
-  if (!w) return;
-  w.document.write(html);
-  w.document.close();
-  w.focus();
-  setTimeout(() => w.print(), 300);
+async function printNota(order) {
+  const url = `${api.rawBase}/pesanan/${order.kode_pesanan}/cetak-nota`;
+  const res = await fetch(url);
+  if (!res.ok) return;
+  const blob = await res.blob();
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `nota-${order.kode_pesanan}.pdf`;
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
 
 function Chip({ label, accent, bg }) {

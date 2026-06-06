@@ -51,7 +51,7 @@ function getTitleFrom(obj) {
   if (obj.attributes) return getTitleFrom(obj.attributes);
   if (obj.properties) return getTitleFrom(obj.properties);
   const norm = normalizeKeys(obj);
-  const candidates = ['nama_location', 'nama_loc', 'nama', 'name', 'title', 'lokasi', 'location', 'label', 'alamat', 'address'];
+  const candidates = ['nama_loct', 'nama_location', 'nama_loc', 'nama', 'name', 'title', 'lokasi', 'location', 'label', 'alamat', 'address'];
   for (const c of candidates) {
     if (norm[c] !== undefined && norm[c] !== null) {
       const s = String(norm[c]).trim();
@@ -126,7 +126,7 @@ export default function Map({ endpoint = '/api/locations/geojson', height = 320 
             const title = getTitleFrom(props) || 'Location';
             const body = props.address || props.alamat || '';
             layer.bindPopup(`<div style="font-weight:600">${title}</div>${body}`);
-            try { layer.bindTooltip(String(title), { permanent: false, direction: 'top', offset: [0, -10], className: 'kp-pin-label' }); } catch (e) {}
+            try { layer.bindTooltip(String(title), { permanent: true, direction: 'top', offset: [0, -28], className: 'kp-pin-label' }); } catch (e) {}
           }} />
         )}
 
@@ -138,7 +138,7 @@ export default function Map({ endpoint = '/api/locations/geojson', height = 320 
           const title = getTitleFrom(loc) || 'Location';
           return (
             <Marker key={key} position={[lat, lng]}>
-              <Tooltip permanent={false} direction="top" offset={[0, -10]} className="kp-pin-label">{title}</Tooltip>
+              <Tooltip permanent={true} direction="top" offset={[0, -28]} className="kp-pin-label">{title}</Tooltip>
               <Popup><div style={{ fontWeight: 600 }}>{title}</div>{loc.address ?? null}</Popup>
             </Marker>
           );

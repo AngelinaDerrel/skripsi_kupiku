@@ -303,7 +303,7 @@ export default function Results() {
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
             <button className="kp-btn kp-btn-ghost kp-btn-sm" onClick={() => nav('/mood')}>Recalibrate</button>
-            <button className="kp-btn kp-btn-sm">Take the brew quiz</button>
+            <button className="kp-btn kp-btn-sm" onClick={() => nav('/menu')}>Back To Menu</button>
           </div>
         </div>
       </div>
