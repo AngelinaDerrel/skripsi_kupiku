@@ -120,6 +120,7 @@ export default function Stock({ layout = 'staff' }) {
                 id: item.id_bahan ?? item.id ?? idx,
                 name: item.nama_bahan ?? item.name ?? '',
                 unit: item.satuan_dasar ?? item.unit ?? '',
+                stok_saat_ini: item.stok_saat_ini ?? null,
               }))
               .filter((item) => item.id && item.name)
           );
@@ -490,8 +491,8 @@ export default function Stock({ layout = 'staff' }) {
                   }}>
                     <span className="kp-mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{item.id}</span>
                     <span style={{ fontWeight: 500 }}>{item.name}</span>
-                    <span style={{ fontWeight: 600, color: stokMasukTotals[item.id] ? 'var(--text)' : 'var(--text-muted)' }}>
-                      {stokMasukTotals[item.id] != null ? Number(stokMasukTotals[item.id]).toLocaleString('id-ID') : '—'}
+                    <span style={{ fontWeight: 600, color: item.stok_saat_ini != null ? 'var(--text)' : 'var(--text-muted)' }}>
+                      {item.stok_saat_ini != null ? Number(item.stok_saat_ini).toLocaleString('id-ID') : '—'}
                     </span>
                     <span style={{ color: 'var(--text-muted)' }}>{item.unit || '-'}</span>
                     <span>

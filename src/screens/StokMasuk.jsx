@@ -35,9 +35,24 @@ export default function StokMasuk() {
 
   const [history, setHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState(null);
 
   const { search, setSearch } = useContext(StaffSearchContext);
   const [toast, setToast] = useState({ visible: false, message: '', ok: true });
+
+  async function fetchHistory() {
+    setHistoryLoading(true);
+    setHistoryError(null);
+    try {
+      const stokData = await api.get('stok-masuk');
+      const stokArr = Array.isArray(stokData) ? stokData : (stokData?.data ?? []);
+      setHistory(stokArr);
+    } catch (err) {
+      setHistoryError(err?.message || 'Gagal memuat riwayat stok masuk.');
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
 
   useEffect(() => {
     let mounted = true;
@@ -67,22 +82,8 @@ export default function StokMasuk() {
       }
     }
 
-    async function loadHistory() {
-      setHistoryLoading(true);
-      try {
-        const stokData = await api.get('stok-masuk');
-        if (!mounted) return;
-        const stokArr = Array.isArray(stokData) ? stokData : (stokData?.data ?? []);
-        setHistory(stokArr);
-      } catch {
-        // riwayat gagal tidak menghalangi form input
-      } finally {
-        if (mounted) setHistoryLoading(false);
-      }
-    }
-
     loadBahan();
-    loadHistory();
+    fetchHistory();
     return () => { mounted = false; };
   }, []);
 
@@ -312,11 +313,21 @@ export default function StokMasuk() {
 
         {/* ── RIWAYAT STOK MASUK ── */}
         <section>
-          <div style={{ marginBottom: 14 }}>
-            <h2 style={{ fontSize: 17, margin: 0 }}>Riwayat stok masuk</h2>
-            <div className="kp-mono" style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>
-              {history.length} entri tercatat
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+            <div>
+              <h2 style={{ fontSize: 17, margin: 0 }}>Riwayat stok masuk</h2>
+              <div className="kp-mono" style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>
+                {history.length} entri tercatat
+              </div>
             </div>
+            <button
+              className="kp-btn kp-btn-ghost"
+              style={{ padding: '6px 14px', fontSize: 12 }}
+              onClick={fetchHistory}
+              disabled={historyLoading}
+            >
+              {historyLoading ? 'Loading...' : 'Refresh'}
+            </button>
           </div>
 
           <div className="kp-card" style={{ overflowX: 'auto' }}>
@@ -340,13 +351,16 @@ export default function StokMasuk() {
                 Loading riwayat...
               </div>
             )}
-            {!historyLoading && history.length === 0 && (
+            {!historyLoading && historyError && (
+              <div style={{ padding: 20, textAlign: 'center', color: 'var(--bad)', fontSize: 13 }}>{historyError}</div>
+            )}
+            {!historyLoading && !historyError && history.length === 0 && (
               <div style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
                 Belum ada riwayat stok masuk.
               </div>
             )}
 
-            {!historyLoading && history.slice(0, 30).map((entry, i) => {
+            {!historyLoading && !historyError && history.slice(0, 30).map((entry, i) => {
               const namaBahan = entry.bahan_baku?.nama_bahan ?? '-';
               const satuan = entry.bahan_baku?.satuan_dasar ?? '';
               const namaStaff = entry.pegawai?.nama_pegawai ?? entry.pegawai?.name ?? '-';
