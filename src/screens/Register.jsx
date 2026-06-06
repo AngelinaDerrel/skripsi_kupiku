@@ -73,23 +73,16 @@ export default function Register() {
         onOrderClick={() => nav('/login')}
       />
 
-      <div style={{
-        flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr',
-        position: 'relative', zIndex: 1
-      }}>
+      <div className="kp-auth-layout">
         {/* Left — copy */}
-        <div style={{
-          padding: '80px 56px',
-          display: 'flex', flexDirection: 'column', justifyContent: 'center',
-          borderRight: '1px solid var(--line)'
-        }}>
+        <div className="kp-auth-copy">
           <div className="kp-eyebrow" style={{ marginBottom: 28, display: 'flex', alignItems: 'center', gap: 12 }}>
             <span style={{ width: 24, height: 1, background: 'var(--brown-2)' }}></span>
             Bergabung · mood vault
           </div>
 
-          <h1 className="kp-display" style={{
-            fontSize: 64, lineHeight: 0.98, margin: 0, color: 'var(--text)',
+          <h1 className="kp-display kp-h1-auth" style={{
+            color: 'var(--text)',
             textWrap: 'balance'
           }}>
             Temukan kopi<br />
@@ -128,10 +121,7 @@ export default function Register() {
         </div>
 
         {/* Right — register card */}
-        <div style={{
-          padding: '80px 56px',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
+        <div className="kp-auth-form">
           <div className="kp-card" style={{
             width: '100%', maxWidth: 420,
             padding: '40px 36px',
@@ -259,9 +249,7 @@ export default function Register() {
       </div>
 
       {/* Bottom strip */}
-      <div style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '16px 56px', borderTop: '1px solid var(--line)',
+      <div className="kp-auth-strip" style={{
         fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-dim)',
         letterSpacing: '0.08em', textTransform: 'uppercase',
         position: 'relative', zIndex: 1

@@ -92,7 +92,7 @@ export default function PreferenceFlow() {
 
   return (
     <div className="kp" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <div style={{ padding: '24px 56px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--line)' }}>
+      <div className="kp-step-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <span className="kp-mono" style={{ fontSize: 12, color: 'var(--text-muted)', cursor: 'pointer' }} onClick={() => nav('/')}>← Back</span>
           <span style={{ width: 1, height: 16, background: 'var(--line-strong)' }} />
@@ -103,13 +103,13 @@ export default function PreferenceFlow() {
           <div style={{ width: 80, height: 2, background: step >= 2 ? 'var(--brown)' : 'var(--surface-3)' }} />
           <div style={{ width: 80, height: 2, background: step >= 3 ? 'var(--brown)' : 'var(--surface-3)' }} />
         </div>
-        <span className="kp-mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>kupiku.id/discover</span>
+        <span className="kp-mono kp-step-hint" style={{ fontSize: 11, color: 'var(--text-muted)' }}>kupiku.id/discover</span>
       </div>
 
-      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 380px', gap: 0 }}>
-        <div style={{ padding: '56px 56px 40px', display: 'flex', flexDirection: 'column' }}>
+      <div className="kp-mood-layout">
+        <div className="kp-mood-main">
           <div className="kp-eyebrow" style={{ marginBottom: 16 }}>Preference check-in</div>
-          <h2 className="kp-display" style={{ fontSize: 56, lineHeight: 1.02, margin: 0, maxWidth: 640 }}>
+          <h2 className="kp-display kp-h2-mood" style={{ maxWidth: 640 }}>
             Choose your<br />flavor profile
           </h2>
           <p style={{ color: 'var(--text-muted)', marginTop: 20, maxWidth: 480, fontSize: 15, lineHeight: 1.55 }}>
@@ -181,7 +181,7 @@ export default function PreferenceFlow() {
           
         </div>
 
-        <aside style={{ background: 'var(--surface)', borderLeft: '1px solid var(--line)', padding: '56px 36px 40px', display: 'flex', flexDirection: 'column' }}>
+        <aside className="kp-mood-aside">
           <div className="kp-eyebrow" style={{ marginBottom: 16 }}>Summary</div>
 
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>

@@ -41,17 +41,13 @@ export default function StokMasuk() {
 
   useEffect(() => {
     let mounted = true;
-    async function load() {
+
+    async function loadBahan() {
       setBahanLoading(true);
       setBahanError(null);
-      setHistoryLoading(true);
       try {
-        const [bahanData, stokData] = await Promise.all([
-          api.get('bahanbaku'),
-          api.get('stok-masuk'),
-        ]);
+        const bahanData = await api.get('bahanbaku');
         if (!mounted) return;
-
         const bahanArr = Array.isArray(bahanData) ? bahanData : (bahanData?.data ?? []);
         const mapped = bahanArr
           .map((item, idx) => ({
@@ -61,20 +57,32 @@ export default function StokMasuk() {
           }))
           .filter((i) => i.id && i.name);
         setBahanList(mapped);
-
         const initInputs = {};
         mapped.forEach((b) => { initInputs[b.id] = { jumlah: '', keterangan: '' }; });
         setInputs(initInputs);
-
-        const stokArr = Array.isArray(stokData) ? stokData : (stokData?.data ?? []);
-        setHistory(stokArr);
       } catch (err) {
-        if (mounted) setBahanError(err?.message || 'Gagal memuat data');
+        if (mounted) setBahanError(err?.message || 'Gagal memuat bahan baku');
       } finally {
-        if (mounted) { setBahanLoading(false); setHistoryLoading(false); }
+        if (mounted) setBahanLoading(false);
       }
     }
-    load();
+
+    async function loadHistory() {
+      setHistoryLoading(true);
+      try {
+        const stokData = await api.get('stok-masuk');
+        if (!mounted) return;
+        const stokArr = Array.isArray(stokData) ? stokData : (stokData?.data ?? []);
+        setHistory(stokArr);
+      } catch {
+        // riwayat gagal tidak menghalangi form input
+      } finally {
+        if (mounted) setHistoryLoading(false);
+      }
+    }
+
+    loadBahan();
+    loadHistory();
     return () => { mounted = false; };
   }, []);
 

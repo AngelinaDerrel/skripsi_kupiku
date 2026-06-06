@@ -40,17 +40,15 @@ export default function Landing() {
         onOrderClick={() => nav('/login')}
       />
 
-      <div style={{
-        flex: 1, display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 80,
-        padding: '72px 56px 56px', alignItems: 'center', position: 'relative'
-      }}>
+      {/* Hero */}
+      <div className="kp-hero-layout">
         <div>
           <div className="kp-eyebrow" style={{ marginBottom: 32, display: 'flex', alignItems: 'center', gap: 12 }}>
             <span style={{ width: 24, height: 1, background: 'var(--brown-2)' }}></span>
             Mood–first coffee, est. 2015
           </div>
 
-          <h1 className="kp-display" style={{ fontSize: 88, lineHeight: 0.96, margin: 0, textWrap: 'balance' }}>
+          <h1 className="kp-display kp-h1-landing">
             Find your<br />perfect coffee<br />
             <span style={{ fontStyle: 'italic', color: 'var(--brown-3)' }}>by feel.</span>
           </h1>
@@ -60,27 +58,17 @@ export default function Landing() {
             from a quiet pour-over for calm afternoons to a bold espresso for the days that need it.
           </p>
 
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
             <button className="kp-btn" onClick={() => nav('/login', { state: { next: '/mood' } })}>
-                Discover your mood
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, opacity: 0.8 }}>
-                  →
-                </span>
-              </button>
+              Discover your mood
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, opacity: 0.8 }}>→</span>
+            </button>
             <button className="kp-btn kp-btn-ghost" onClick={() => nav('/menu')}>Browse the menu</button>
           </div>
-{/* 
-          <div style={{ display: 'flex', gap: 48, marginTop: 64, paddingTop: 28, borderTop: '1px solid var(--line)' }}>
-            {[{ v: '6', l: 'mood profiles' }, { v: '42', l: 'crafted drinks' }, { v: '12s', l: 'avg. match time' }].map(s => (
-              <div key={s.l}>
-                <div className="kp-display" style={{ fontSize: 32, lineHeight: 1 }}>{s.v}</div>
-                <div className="kp-eyebrow" style={{ marginTop: 8, fontSize: 10 }}>{s.l}</div>
-              </div>
-            ))}
-          </div> */}
         </div>
 
-        <div style={{ position: 'relative', height: 520 }}>
+        {/* Hero visual — hidden on tablet/mobile via CSS */}
+        <div className="kp-hero-visual" style={{ position: 'relative', height: 520 }}>
           <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 60% 40%, rgba(107,79,58,0.22), transparent 55%)' }} />
           <div style={{ position: 'absolute', top: 16, right: 6, width: 440, height: 440 }}>
             <div style={{
@@ -132,10 +120,10 @@ export default function Landing() {
           </div>
         </div>
       </div>
-      
-      {/* Profile / Gallery section */}
-      <section style={{ padding: '56px 56px', borderTop: '1px solid var(--line)' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, alignItems: 'center' }}>
+
+      {/* Gallery section */}
+      <section className="kp-section-pad" style={{ borderTop: '1px solid var(--line)' }}>
+        <div className="kp-gallery-layout">
           <div>
             <div className="kp-eyebrow" style={{ marginBottom: 12 }}>Our space</div>
             <h3 className="kp-display" style={{ fontSize: 36, margin: 0 }}>A place for slow pours and small talks</h3>
@@ -143,42 +131,40 @@ export default function Landing() {
               Kupiku is a neighborhood roastery and cafe built around simple rituals — careful brewing, seasonal beans, and a relaxed pace.
               Below are a few snapshots from our stores to give a sense of the space and the service you can expect.
             </p>
-            {/* <div style={{ marginTop: 20, display: 'flex', gap: 12 }}>
-              <button className="kp-btn" onClick={() => nav('/menu')}>See the menu</button>
-              <button className="kp-btn kp-btn-ghost" onClick={() => nav('/mood')}>Start with mood</button>
-            </div> */}
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="kp-photo-grid">
             {[
               { src: foto1 },
-              { src: foto2,},
-              { src: foto3, },
-              { src: foto4,  },
-            ].map(({ src, label }) => (
-              <div key={label} style={{ position: 'relative', height: 180, borderRadius: 8, overflow: 'hidden', background: 'var(--surface)' }}>
+              { src: foto2 },
+              { src: foto3 },
+              { src: foto4 },
+            ].map(({ src, label }, idx) => (
+              <div key={idx} style={{ position: 'relative', height: 180, borderRadius: 8, overflow: 'hidden', background: 'var(--surface)' }}>
                 <img
                   src={src}
                   alt={label}
                   style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }}
                 />
-                <span style={{
-                  position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)',
-                  background: 'rgba(20,14,10,0.72)', backdropFilter: 'blur(6px)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  borderRadius: 4, padding: '4px 10px',
-                  fontFamily: 'var(--font-mono)', fontSize: 10,
-                  color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase',
-                  whiteSpace: 'nowrap',
-                }}>{label}</span>
+                {label && (
+                  <span style={{
+                    position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)',
+                    background: 'rgba(20,14,10,0.72)', backdropFilter: 'blur(6px)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: 4, padding: '4px 10px',
+                    fontFamily: 'var(--font-mono)', fontSize: 10,
+                    color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase',
+                    whiteSpace: 'nowrap',
+                  }}>{label}</span>
+                )}
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Map preview section */}
-      <section id="maps" style={{ padding: '56px 56px', borderTop: '1px solid var(--line)' }}>
+      {/* Map section */}
+      <section id="maps" className="kp-section-pad" style={{ borderTop: '1px solid var(--line)' }}>
         <div className="kp-eyebrow" style={{ marginBottom: 12 }}>Find us</div>
         <h3 className="kp-display" style={{ fontSize: 28, margin: 0 }}>Where to find Kupiku Coffee</h3>
         <div className="kp-card" style={{ marginTop: 20, height: 400, borderRadius: 12, overflow: 'hidden', padding: 0 }}>
@@ -186,26 +172,16 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Footer — Contact & Location */}
+      {/* Footer */}
       <footer style={{
         borderTop: '1px solid var(--line)',
         background: 'var(--surface-1, #0B0907)',
         padding: '56px 56px 28px',
       }}>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1.4fr 1fr 1fr 1fr',
-          gap: 56,
-          alignItems: 'flex-start',
-        }}>
+        <div className="kp-footer-grid">
           {/* Brand block */}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
-              {/* <img
-                src={LogoKupiku}
-                alt="Kupiku Logo"
-                style={{ width: 80, height: 80, objectFit: 'contain', margin: '-20px 0' }}
-              /> */}
               <span style={{ fontWeight: 600, letterSpacing: '-0.01em', fontSize: 14 }}>Kupiku Coffee</span>
             </div>
             <p style={{
@@ -272,12 +248,6 @@ export default function Landing() {
                   <span className="kp-mono" style={{ color: 'var(--text)', fontSize: 11 }}>{h}</span>
                 </div>
               ))}
-              <div style={{
-                display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 6,
-                fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.08em',
-                textTransform: 'uppercase', color: 'var(--brown-3)'
-              }}>
-              </div>
             </div>
           </div>
 
@@ -286,21 +256,15 @@ export default function Landing() {
             <div className="kp-eyebrow" style={{ fontSize: 10, marginBottom: 18 }}>Get in touch</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
-                <div className="kp-mono" style={{ fontSize: 10, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
-                  Email
-                </div>
+                <div className="kp-mono" style={{ fontSize: 10, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Email</div>
                 <div style={{ fontSize: 13, color: 'var(--text)' }}>halo@kupiku.coffee</div>
               </div>
               <div>
-                <div className="kp-mono" style={{ fontSize: 10, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
-                  Phone
-                </div>
+                <div className="kp-mono" style={{ fontSize: 10, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Phone</div>
                 <div style={{ fontSize: 13, color: 'var(--text)' }}>+62 22 8888 0142</div>
               </div>
               <div>
-                <div className="kp-mono" style={{ fontSize: 10, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
-                  Wholesale
-                </div>
+                <div className="kp-mono" style={{ fontSize: 10, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Wholesale</div>
                 <div style={{ fontSize: 13, color: 'var(--text)' }}>trade@kupiku.coffee</div>
               </div>
             </div>
@@ -315,13 +279,6 @@ export default function Landing() {
           textTransform: 'uppercase', color: 'var(--text-dim)'
         }}>
           <span>© 2026 Kupiku Coffee</span>
-          {/* <div style={{ display: 'flex', gap: 28 }}>
-            <span style={{ cursor: 'pointer' }}>Privacy</span>
-            <span style={{ cursor: 'pointer' }}>Terms</span>
-            <span style={{ cursor: 'pointer' }}>Careers</span>
-            <span style={{ cursor: 'pointer' }}>Press kit</span>
-          </div> */}
-          {/* <span>−6.8895° S, 107.6131° E</span> */}
         </div>
       </footer>
     </div>

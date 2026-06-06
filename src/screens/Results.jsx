@@ -87,10 +87,7 @@ export default function Results() {
   const matches = recommendedMatches || ((mood || flavor || temp) ? applyFilters() : null);
   return (
     <div className="kp" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <div style={{
-        padding: '24px 56px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        borderBottom: '1px solid var(--line)'
-      }}>
+      <div className="kp-step-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <span className="kp-mono" style={{ fontSize: 12, color: 'var(--text-muted)', cursor: 'pointer' }} onClick={() => nav('/mood')}>← Back</span>
           <span style={{ width: 1, height: 16, background: 'var(--line-strong)' }} />
@@ -101,15 +98,15 @@ export default function Results() {
           <div style={{ width: 80, height: 2, background: 'var(--brown)' }} />
           <div style={{ width: 80, height: 2, background: 'var(--brown)' }} />
         </div>
-        <span className="kp-mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{matches ? matches.length : 0} matches found</span>
+        <span className="kp-mono kp-step-hint" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{matches ? matches.length : 0} matches found</span>
       </div>
 
-        <div style={{ padding: '52px 56px 32px', display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 60, alignItems: 'end' }}>
+        <div className="kp-results-header-layout">
         <div>
           <div className="kp-eyebrow" style={{ marginBottom: 14 }}>
             {serverInput ? `Reading: ${serverInput.mood} · preference: ${serverInput.flavor || 'any'} · ${serverInput.temp || ''}` : (mood ? `Reading: ${mood.toLowerCase()} · preference: ${flavor || 'any'} · ${temp || ''}` : 'Reading: curated picks')}
           </div>
-          <h2 className="kp-display" style={{ fontSize: 52, lineHeight: 1.02, margin: 0 }}>
+          <h2 className="kp-display kp-h2-results">
             {serverInput ? `Matches for ${serverInput.mood}` : (mood ? `Matches for ${mood}` : 'Top picks for you')}
           </h2>
           {serverRule && (
@@ -130,10 +127,10 @@ export default function Results() {
         </div>
       </div>
 
-        <div style={{ padding: '0 56px 56px' }}>
+        <div className="kp-results-content">
         {(matches && matches.length > 0) ? (
           <>
-            <div className="kp-card" style={{ display: 'grid', gridTemplateColumns: '380px 1fr', gap: 0, overflow: 'hidden', boxShadow: 'var(--shadow)', marginBottom: 24 }}>
+            <div className="kp-card kp-featured-card" style={{ boxShadow: 'var(--shadow)', marginBottom: 24 }}>
               {matches[0].foto ? (
                 <div style={{ position: 'relative', aspectRatio: '4 / 3', background: 'var(--surface)', overflow: 'hidden' }}>
                   {!imgLoaded[matches[0].id] && (
@@ -202,7 +199,7 @@ export default function Results() {
             </div>
 
             <div className="kp-eyebrow" style={{ marginBottom: 16 }}>Also in your range</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
+            <div className="kp-menu-grid">
               {matches.slice(1).map((it) => (
                 <div key={it.id} className="kp-card" style={{ overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
                   {it.foto ? (

@@ -21,6 +21,7 @@ export default function PublicNavbar({
   const { items } = useCart();
   const [cartOpen, setCartOpen] = React.useState(false);
   const [trackWarning, setTrackWarning] = React.useState(false);
+  const [menuOpen, setMenuOpen] = React.useState(false);
   const pathname = loc.pathname || '';
   let activeKey = active;
   if (!activeKey) {
@@ -73,13 +74,40 @@ export default function PublicNavbar({
     nav('/track');
   }
 
+  function NavItem({ children, active, onClick }) {
+    const [hover, setHover] = React.useState(false);
+    const defaultColor = 'var(--text-muted)';
+    const activeColor = 'var(--text)';
+    const style = { color: active ? activeColor : (hover ? activeColor : defaultColor), cursor: 'pointer' };
+    return (
+      <span
+        style={style}
+        onClick={onClick}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+      >
+        {children}
+      </span>
+    );
+  }
+
+  function closeMobileNav() { setMenuOpen(false); }
+
+  function mobileNav(label, onClick, isActive) {
+    return (
+      <div
+        className={`kp-mobile-nav-item${isActive ? ' is-active' : ''}`}
+        onClick={() => { closeMobileNav(); onClick(); }}
+      >
+        {label}
+      </div>
+    );
+  }
+
   return (
     <>
-      <nav style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '24px 56px', borderBottom: '1px solid var(--line)',
-        position: 'relative', zIndex: 2
-      }}>
+      <nav className="kp-nav">
+        {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', height: '100%' }} onClick={handleDiscover}>
             <img
@@ -89,35 +117,16 @@ export default function PublicNavbar({
             />
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 36, fontSize: 13, color: 'var(--text-muted)' }}>
-          {(() => {
-            function NavItem({ children, active, onClick }) {
-              const [hover, setHover] = React.useState(false);
-              const defaultColor = 'var(--text-muted)';
-              const activeColor = 'var(--text)';
-              const style = { color: active ? activeColor : (hover ? activeColor : defaultColor), cursor: 'pointer' };
-              return (
-                <span
-                  style={style}
-                  onClick={onClick}
-                  onMouseEnter={() => setHover(true)}
-                  onMouseLeave={() => setHover(false)}
-                >
-                  {children}
-                </span>
-              );
-            }
 
-            return (
-              <>
-                <NavItem active={activeKey === 'discover'} onClick={handleDiscover}>Discover</NavItem>
-                <NavItem active={activeKey === 'menu'} onClick={handleMenu}>Menu</NavItem>
-                <NavItem active={activeKey === 'mood'} onClick={handleMood}>Mood</NavItem>
-                <NavItem active={activeKey === 'track'} onClick={handleTrack}>Track Order</NavItem>
-              </>
-            );
-          })()}
+        {/* Desktop nav links */}
+        <div className="kp-nav-links">
+          <NavItem active={activeKey === 'discover'} onClick={handleDiscover}>Discover</NavItem>
+          <NavItem active={activeKey === 'menu'} onClick={handleMenu}>Menu</NavItem>
+          <NavItem active={activeKey === 'mood'} onClick={handleMood}>Mood</NavItem>
+          <NavItem active={activeKey === 'track'} onClick={handleTrack}>Track Order</NavItem>
         </div>
+
+        {/* Right actions */}
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           {user ? (
             <>
@@ -154,8 +163,53 @@ export default function PublicNavbar({
           ) : (
             <button className="kp-btn kp-btn-sm" onClick={handleAdmin}>Sign In</button>
           )}
+
+          {/* Hamburger — visible on mobile only */}
+          <button className="kp-nav-ham" onClick={() => setMenuOpen(true)} aria-label="Open menu">
+            <span /><span /><span />
+          </button>
         </div>
       </nav>
+
+      {/* Mobile overlay menu */}
+      <div className={`kp-mobile-nav${menuOpen ? ' is-open' : ''}`}>
+        <button className="kp-mobile-nav-close" onClick={closeMobileNav} aria-label="Close menu">×</button>
+
+        {mobileNav('Discover', handleDiscover, activeKey === 'discover')}
+        {mobileNav('Menu', handleMenu, activeKey === 'menu')}
+        {mobileNav('Mood', handleMood, activeKey === 'mood')}
+        {mobileNav('Track Order', handleTrack, activeKey === 'track')}
+
+        <div style={{ marginTop: 32 }}>
+          {user ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <button
+                className="kp-btn"
+                onClick={() => { closeMobileNav(); setCartOpen(true); }}
+                style={{ justifyContent: 'center' }}
+              >
+                Cart ({items.length})
+              </button>
+              <button
+                className="kp-btn kp-btn-ghost"
+                onClick={() => { closeMobileNav(); nav('/profile'); }}
+                style={{ justifyContent: 'center' }}
+              >
+                Profil · {user.name}
+              </button>
+            </div>
+          ) : (
+            <button
+              className="kp-btn"
+              onClick={() => { closeMobileNav(); handleAdmin(); }}
+              style={{ width: '100%', justifyContent: 'center' }}
+            >
+              Sign In
+            </button>
+          )}
+        </div>
+      </div>
+
       <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
 
       {/* Warning: belum login saat klik Track Order */}

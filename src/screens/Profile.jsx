@@ -392,7 +392,7 @@ function ProfilTab({ storedUser, token, onNameUpdate }) {
       </div>
 
       {/* Two column */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'start' }}>
+      <div className="kp-profile-two-col">
         <div style={card}>
           <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}>Update Username</div>
           <form onSubmit={handleUpdateName}>
@@ -457,15 +457,27 @@ function CustomerProfile({ storedUser, token, onLogout }) {
     { id: 'riwayat', label: 'Riwayat Pesanan',  icon: 'ticket' },
   ];
 
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   return (
     <div className="kp" style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
 
       {/* ── Sidebar ── */}
-      <aside style={{
-        width: 232, flex: 'none', background: '#0B0B0B',
-        borderRight: '1px solid var(--line)', padding: '22px 14px',
-        display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden',
-      }}>
+      <aside className={`kp-admin-sidebar${sidebarOpen ? ' is-open' : ''}`}>
+        {/* Close sidebar (mobile) */}
+        <button
+          onClick={() => setSidebarOpen(false)}
+          style={{
+            display: 'none', position: 'absolute', top: 14, right: 12,
+            width: 28, height: 28, borderRadius: 6,
+            border: '1px solid var(--line)', background: 'transparent',
+            color: 'var(--text-muted)', fontSize: 16, cursor: 'pointer',
+            alignItems: 'center', justifyContent: 'center',
+          }}
+          className="kp-sidebar-close-btn"
+          aria-label="Close menu"
+        >×</button>
+
         {/* User card — top */}
         <div style={{ padding: '4px 8px 20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -514,7 +526,7 @@ function CustomerProfile({ storedUser, token, onLogout }) {
             return (
               <div
                 key={item.id}
-                onClick={() => setActiveTab(item.id)}
+                onClick={() => { setActiveTab(item.id); setSidebarOpen(false); }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 12,
                   padding: '9px 10px', borderRadius: 8,
@@ -535,7 +547,7 @@ function CustomerProfile({ storedUser, token, onLogout }) {
 
         {/* Logout */}
         <button
-          onClick={() => setIsLogoutOpen(true)}
+          onClick={() => { setSidebarOpen(false); setIsLogoutOpen(true); }}
           style={{
             display: 'flex', alignItems: 'center', gap: 12,
             padding: '9px 10px', borderRadius: 8,
@@ -550,7 +562,27 @@ function CustomerProfile({ storedUser, token, onLogout }) {
       </aside>
 
       {/* ── Main content ── */}
-      <main style={{ flex: 1, overflowY: 'auto', padding: '40px 48px' }}>
+      <main className="kp-admin-main-wrap" style={{ display: 'flex', flexDirection: 'column' }}>
+        {/* Mobile top bar */}
+        <div style={{
+          display: 'none', padding: '12px 18px',
+          borderBottom: '1px solid var(--line)',
+          alignItems: 'center', gap: 12,
+          background: '#0B0B0B',
+        }} className="kp-admin-mobile-bar">
+          <button
+            onClick={() => setSidebarOpen(s => !s)}
+            style={{
+              width: 36, height: 36, borderRadius: 8, border: '1px solid var(--line)',
+              background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
+            }}
+          >☰</button>
+          <span style={{ fontWeight: 600, fontSize: 14 }}>Profil Saya</span>
+        </div>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '40px 48px' }}
+          className="kp-profile-content"
+        >
         {activeTab === 'profil' && (
           <ProfilTab
             storedUser={{ ...storedUser, name: displayName }}
@@ -561,6 +593,7 @@ function CustomerProfile({ storedUser, token, onLogout }) {
         {activeTab === 'riwayat' && (
           <RiwayatPesanan token={token} />
         )}
+        </div>
       </main>
 
       {/* ── Logout confirm dialog ── */}

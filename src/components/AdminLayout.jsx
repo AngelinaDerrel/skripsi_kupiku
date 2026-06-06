@@ -1,5 +1,5 @@
 import React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import NavIcon from './NavIcon.jsx';
 
@@ -34,6 +34,7 @@ export default function AdminLayout({ children }) {
   }
 
   function openLogoutModal() {
+    setSidebarOpen(false);
     setIsLogoutOpen(true);
   }
 
@@ -47,13 +48,38 @@ export default function AdminLayout({ children }) {
     nav('/');
   }
 
+  const [sidebarOpen, setSidebarOpen] = React.useState(false);
+
+  useEffect(() => { setSidebarOpen(false); }, [loc]);
+
   return (
     <div className="kp" style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-      <aside style={{
-        width: 232, flex: 'none', background: '#0B0B0B',
-        borderRight: '1px solid var(--line)', padding: '22px 14px',
-        display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden'
-      }}>
+      {/* Sidebar overlay backdrop (mobile) */}
+      {sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+            zIndex: 149, display: 'none'
+          }}
+          className="kp-sidebar-backdrop"
+        />
+      )}
+      <aside className={`kp-admin-sidebar${sidebarOpen ? ' is-open' : ''}`}>
+        {/* Close sidebar button (mobile only) */}
+        <button
+          onClick={() => setSidebarOpen(false)}
+          style={{
+            display: 'none', position: 'absolute', top: 14, right: 12,
+            width: 28, height: 28, borderRadius: 6,
+            border: '1px solid var(--line)', background: 'transparent',
+            color: 'var(--text-muted)', fontSize: 16, cursor: 'pointer',
+            alignItems: 'center', justifyContent: 'center',
+          }}
+          className="kp-sidebar-close-btn"
+          aria-label="Close menu"
+        >×</button>
+
         <div
           style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 8px 22px', cursor: 'pointer' }}
           onClick={handleBrandClick}
@@ -115,7 +141,26 @@ export default function AdminLayout({ children }) {
         </div>
       </aside>
 
-      <div style={{ flex: 1, minWidth: 0, height: '100vh', overflow: 'auto' }}>{children}</div>
+      <div className="kp-admin-main-wrap" style={{ display: 'flex', flexDirection: 'column' }}>
+        {/* Mobile top bar */}
+        <div style={{
+          display: 'none', padding: '12px 18px',
+          borderBottom: '1px solid var(--line)',
+          alignItems: 'center', gap: 12,
+          background: '#0B0B0B',
+        }} className="kp-admin-mobile-bar">
+          <button
+            onClick={() => setSidebarOpen(s => !s)}
+            style={{
+              width: 36, height: 36, borderRadius: 8, border: '1px solid var(--line)',
+              background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
+            }}
+          >☰</button>
+          <span style={{ fontWeight: 600, fontSize: 14 }}>Kupiku Coffee</span>
+        </div>
+        {children}
+      </div>
 
       {isLogoutOpen && (
         <div

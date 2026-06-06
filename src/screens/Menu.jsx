@@ -131,13 +131,13 @@ export default function Menu() {
       />
 
       {/* Header */}
-      <div style={{ padding: '64px 56px 40px', display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 60, alignItems: 'end' }}>
+      <div className="kp-menu-header-layout">
         <div>
           <div className="kp-eyebrow" style={{ marginBottom: 18, display: 'flex', alignItems: 'center', gap: 12 }}>
             <span style={{ width: 24, height: 1, background: 'var(--brown-2)' }} />
             The full menu '26
           </div>
-          <h1 className="kp-display" style={{ fontSize: 76, lineHeight: 0.98, margin: 0 }}>
+          <h1 className="kp-display kp-h1-menu">
             Every pour,<br />
             <span style={{ fontStyle: 'italic', color: 'var(--brown-3)' }}>every</span> mood.
           </h1>
@@ -160,10 +160,7 @@ export default function Menu() {
       </div>
 
       {/* Filter pills */}
-      <div style={{
-        padding: '8px 56px 24px', display: 'flex', alignItems: 'center', gap: 8,
-        position: 'sticky', top: 0, background: 'var(--bg)', zIndex: 5
-      }}>
+      <div className="kp-menu-filter-bar">
         <span className="kp-eyebrow" style={{ marginRight: 6 }}>FILTER</span>
         {categories.map((c) => {
           const active = c.id === filter;
@@ -184,7 +181,7 @@ export default function Menu() {
       </div>
 
       {/* Grid */}
-      <div style={{ padding: '0 56px 120px' }}>
+      <div className="kp-menu-grid-outer">
         {error && (
           <div style={{
             marginBottom: 18, padding: '10px 14px',
@@ -194,7 +191,7 @@ export default function Menu() {
             {error}
           </div>
         )}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
+        <div className="kp-menu-grid">
           {items.map((d) => {
             const isHover = hovered === d.id;
             return (
