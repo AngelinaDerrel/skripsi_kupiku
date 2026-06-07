@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import Map from '../components/Map';
+import api from '../lib/api';
 import PublicNavbar from '../components/PublicNavbar.jsx';
 import cupImage from '../assets/cup.jpg';
 import foto1 from '../assets/foto1.jpg';
@@ -27,7 +28,7 @@ export default function Landing() {
     <div className="kp" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <PublicNavbar
         active="discover"
-        onMoodClick={() => nav('/login', { state: { next: '/mood' } })}
+        onMoodClick={() => nav('/mood')}
         onLocationsClick={() => {
           if (loc.pathname === '/') {
             const el = document.getElementById('maps');
@@ -59,7 +60,7 @@ export default function Landing() {
           </p>
 
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-            <button className="kp-btn" onClick={() => nav('/login', { state: { next: '/mood' } })}>
+            <button className="kp-btn" onClick={() => nav('/mood')}>
               Discover your mood
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, opacity: 0.8 }}>→</span>
             </button>
@@ -86,7 +87,7 @@ export default function Landing() {
             </div>
           </div>
 
-          <div className="kp-card" style={{ position: 'absolute', top: 70, left: 0, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12, boxShadow: 'var(--shadow)', backdropFilter: 'blur(8px)' }}>
+          {/* <div className="kp-card" style={{ position: 'absolute', top: 70, left: 0, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12, boxShadow: 'var(--shadow)', backdropFilter: 'blur(8px)' }}>
             <div style={{ width: 36, height: 36, borderRadius: 8, background: 'rgba(107,79,58,0.2)', border: '1px solid rgba(107,79,58,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <div style={{ width: 18, height: 12, borderRadius: '0 0 8px 8px', background: 'rgba(168,131,95,0.5)', position: 'relative' }}>
                 <div style={{ position: 'absolute', right: -6, top: 2, width: 8, height: 8, borderRadius: '50%', border: '1.5px solid rgba(168,131,95,0.8)' }} />
@@ -96,9 +97,9 @@ export default function Landing() {
               <div className="kp-eyebrow" style={{ fontSize: 9 }}>mood · calm</div>
               <div style={{ fontSize: 13, fontWeight: 500, marginTop: 2 }}>Kopi Susu Original</div>
             </div>
-          </div>
+          </div> */}
 
-          <div className="kp-card" style={{ position: 'absolute', bottom: 80, right: 30, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12, boxShadow: 'var(--shadow)' }}>
+          {/* <div className="kp-card" style={{ position: 'absolute', bottom: 80, right: 30, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12, boxShadow: 'var(--shadow)' }}>
             <div style={{ width: 36, height: 36, borderRadius: 8, background: 'rgba(197,139,90,0.15)', border: '1px solid rgba(197,139,90,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <div style={{ width: 18, height: 12, borderRadius: '0 0 8px 8px', background: 'rgba(197,139,90,0.55)', position: 'relative' }}>
                 <div style={{ position: 'absolute', right: -6, top: 2, width: 8, height: 8, borderRadius: '50%', border: '1.5px solid rgba(197,139,90,0.85)' }} />
@@ -108,16 +109,16 @@ export default function Landing() {
               <div className="kp-eyebrow" style={{ fontSize: 9 }}>mood · stressed</div>
               <div style={{ fontSize: 13, fontWeight: 500, marginTop: 2 }}>Americano Arabica</div>
             </div>
-          </div>
+          </div> */}
 
-          <div style={{ position: 'absolute', bottom: 10, left: 20, display: 'flex', alignItems: 'flex-end', gap: 4, height: 28 }}>
+          {/* <div style={{ position: 'absolute', bottom: 10, left: 20, display: 'flex', alignItems: 'flex-end', gap: 4, height: 28 }}>
             {[6, 14, 22, 18, 10, 26, 14, 8].map((h, i) => (
               <div key={i} style={{ width: 3, height: h, background: i < 5 ? 'var(--brown-2)' : 'var(--surface-3)', borderRadius: 2 }} />
             ))}
             <span className="kp-mono" style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 8, paddingBottom: 1 }}>
               reading mood…
             </span>
-          </div>
+          </div> */}
         </div>
       </div>
 
@@ -168,7 +169,7 @@ export default function Landing() {
         <div className="kp-eyebrow" style={{ marginBottom: 12 }}>Find us</div>
         <h3 className="kp-display" style={{ fontSize: 28, margin: 0 }}>Where to find Kupiku Coffee</h3>
         <div className="kp-card" style={{ marginTop: 20, height: 400, borderRadius: 12, overflow: 'hidden', padding: 0 }}>
-          <Map endpoint="/api/locations/geojson" height={400} />
+          <Map endpoint={`${api.rawBase}/locations/geojson`} height={400} />
         </div>
       </section>
 
@@ -257,16 +258,16 @@ export default function Landing() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
                 <div className="kp-mono" style={{ fontSize: 10, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Email</div>
-                <div style={{ fontSize: 13, color: 'var(--text)' }}>halo@kupiku.coffee</div>
+                <div style={{ fontSize: 13, color: 'var(--text)' }}>kupiku@gmail.com</div>
               </div>
               <div>
                 <div className="kp-mono" style={{ fontSize: 10, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Phone</div>
                 <div style={{ fontSize: 13, color: 'var(--text)' }}>+62 22 8888 0142</div>
               </div>
-              <div>
+              {/* <div>
                 <div className="kp-mono" style={{ fontSize: 10, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Wholesale</div>
                 <div style={{ fontSize: 13, color: 'var(--text)' }}>trade@kupiku.coffee</div>
-              </div>
+              </div> */}
             </div>
           </div>
         </div>

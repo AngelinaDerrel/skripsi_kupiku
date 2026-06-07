@@ -19,7 +19,7 @@ export default function Login() {
 
   useEffect(() => {
     if (state?.registered) {
-      toast('Akun berhasil dibuat. Silakan masuk.', 'success');
+      toast('Your account has been successfully created. Please log in.', 'success');
     }
   }, []);
 
@@ -28,7 +28,7 @@ export default function Login() {
     if (role === 'admin' || role === 'owner') return nav('/admin');
     if (role === 'staff') return nav('/staff/orders');
 
-    toast('Anda berhasil login dan bisa mulai order sekarang!', 'success');
+    toast('You have successfully logged in and can now place orders!', 'success');
     const allowedCustomerRoutes = ['/menu', '/mood', '/track', '/order'];
     if (nextPath && allowedCustomerRoutes.includes(nextPath)) return nav(nextPath);
     return nav('/menu');
@@ -46,11 +46,11 @@ export default function Login() {
     } catch (err) {
       setStatus('idle');
       if (err.status === 404) {
-        toast('Akun anda belum terdaftar.\nRegister terlebih dahulu atau login by Google.', 'warn');
+        toast('Your account is not registered.\nPlease register first or login with Google.', 'warn');
       } else if (err.status === 401) {
-        toast('Password salah. Silakan coba lagi.', 'warn');
+        toast('Incorrect password. Please try again.', 'warn');
       } else {
-        toast('Terjadi kesalahan. Periksa koneksi anda.', 'warn');
+        toast('An error occurred. Please check your connection.', 'warn');
       }
     }
   }
@@ -65,7 +65,7 @@ export default function Login() {
       navigateAfterLogin(data.user);
     } catch (err) {
       setStatus('idle');
-      toast('Login Google gagal. Coba lagi.', 'warn');
+      toast('Google login failed. Please try again.', 'warn');
     }
   }
 
@@ -98,23 +98,20 @@ export default function Login() {
             color: 'var(--text)',
             textWrap: 'balance'
           }}>
-            Sign in to find<br />
-            your <span style={{ fontStyle: 'italic', color: 'var(--brown-3)' }}>mood match.</span>
+            Sign in to order<br />
           </h1>
 
           <p style={{
             fontSize: 15, lineHeight: 1.65, color: 'var(--text-muted)',
             maxWidth: 420, marginTop: 28, marginBottom: 0
           }}>
-            Kami menyimpan mood dan rekomendasi kopi anda agar setiap cangkir
-            semakin sesuai selera. Masuk dengan email atau Google.
+            We tailor your coffee recommendations to your mood so that every cup is just right for you. Sign in with your email or Google account.
           </p>
 
           <div style={{ marginTop: 40, display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 380 }}>
             {[
-              { t: 'Login via email atau Google', d: 'Pilih cara yang paling nyaman untuk anda.' },
-              { t: 'Mood history tetap private', d: 'Hanya anda dan barista anda yang bisa melihat.' },
-              { t: 'Logout kapan saja', d: 'Cabut akses sewaktu-waktu dari profil anda.' },
+              { t: 'Login by email or Google', d: '' },
+              { t: 'Logout everytime you wants', d: '' },
             ].map((item, i) => (
               <div key={i} style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
                 <div style={{
@@ -154,15 +151,15 @@ export default function Login() {
               }} />
             </div>
 
-            <div className="kp-eyebrow" style={{ marginBottom: 10, fontSize: 10 }}>Selamat datang</div>
+            <div className="kp-eyebrow" style={{ marginBottom: 10, fontSize: 10 }}>Welcome!</div>
             <h2 className="kp-display" style={{ fontSize: 32, lineHeight: 1.05, margin: 0, color: 'var(--text)' }}>
-              Masuk ke Kupiku
+              Sign in to Kupiku
             </h2>
             <p style={{
               fontSize: 13, lineHeight: 1.6, color: 'var(--text-muted)',
               marginTop: 12, marginBottom: 28
             }}>
-              Masukkan email dan password anda, atau gunakan Google.
+              Enter your email and password, or use Google.
             </p>
 
             {/* Email + Password form */}
@@ -199,7 +196,7 @@ export default function Login() {
                 disabled={status === 'loading'}
                 style={{ width: '100%', marginTop: 4, opacity: status === 'loading' ? 0.6 : 1 }}
               >
-                {status === 'loading' ? 'Masuk…' : 'Masuk'}
+                {status === 'loading' ? 'Signing in…' : 'Sign In'}
               </button>
             </form>
 
@@ -212,7 +209,7 @@ export default function Login() {
               <span className="kp-mono" style={{
                 fontSize: 10, color: 'var(--text-dim)',
                 letterSpacing: '0.08em', textTransform: 'uppercase'
-              }}>atau</span>
+              }}>or</span>
               <div style={{ flex: 1, height: 1, background: 'var(--line)' }} />
             </div>
 
@@ -240,12 +237,12 @@ export default function Login() {
               display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center'
             }}>
               <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                Belum punya akun?{' '}
+                Don't have an account yet?{' '}
                 <Link
                   to="/register"
                   style={{ color: 'var(--brown-3)', textDecoration: 'none', fontWeight: 500 }}
                 >
-                  Daftar sekarang
+                  Sign up now
                 </Link>
               </div>
               <div style={{
@@ -265,9 +262,6 @@ export default function Login() {
         letterSpacing: '0.08em', textTransform: 'uppercase',
         position: 'relative', zIndex: 1
       }}>
-        <span>BY SIGNING IN, YOU AGREE TO OUR TERMS</span>
-        <span>EST · KUPIKU · MMXXIV</span>
-        <span>BREWED IN BANDUNG</span>
       </div>
     </div>
   );

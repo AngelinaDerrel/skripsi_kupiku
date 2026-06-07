@@ -1,28 +1,20 @@
 import React from 'react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { MENU_ITEMS } from '../data/menuItems.js';
 import { MOODS } from '../data/moods.js';
 import MoodGlyph from '../components/MoodGlyph.jsx';
 import api from '../lib/api';
 
 const FLAVORS = [
-  { id: 'manis', label: 'Manis' },
-  { id: 'pahit', label: 'Pahit' },
-  { id: 'asam', label: 'Asam' },
+  { id: 'sweet', label: 'Sweet' },
+  { id: 'bitter', label: 'Bitter' },
+  { id: 'sour', label: 'Sour' },
 ];
 
 const TEMPS = [
   { id: 'hot', label: 'Hot' },
   { id: 'ice', label: 'Ice' },
 ];
-
-const FLAVOR_KEYWORDS = {
-  manis: ['honey', 'caramel', 'almond', 'sugar', 'butter'],
-  pahit: ['cacao', 'tobacco', 'cocoa', 'smoke'],
-  balance: [],
-  strong: [],
-};
 
 export default function PreferenceFlow() {
   const nav = useNavigate();
@@ -39,28 +31,6 @@ export default function PreferenceFlow() {
   const [remoteError, setRemoteError] = useState(null);
   const [serverInput, setServerInput] = useState(null);
   const [serverRule, setServerRule] = useState(null);
-
-  function applyFilters() {
-    let items = MENU_ITEMS.slice();
-    if (selectedMood) items = items.filter(i => i.mood && i.mood.toLowerCase() === selectedMood.toLowerCase());
-
-    if (flavor && FLAVOR_KEYWORDS[flavor] && FLAVOR_KEYWORDS[flavor].length) {
-      const keys = FLAVOR_KEYWORDS[flavor];
-      items = items.filter(i => i.notes && i.notes.some(n => keys.includes(n.toLowerCase())));
-    } else if (flavor === 'strong') {
-      items = items.filter(i => i.cat === 'black' || /espresso|strong/i.test(i.name));
-    }
-
-    if (temp) {
-      if (temp === 'hot') items = items.filter(i => /hot/i.test(i.name) || ['classic','latte'].includes(i.cat));
-      if (temp === 'ice') items = items.filter(i => /cold|iced|ice|brew/i.test(i.name) || ['mocktail','signature'].includes(i.cat));
-    }
-
-    return items;
-  }
-
-  const localResults = step === 3 ? applyFilters() : [];
-  const results = remoteMatches && Array.isArray(remoteMatches) ? remoteMatches : localResults;
 
   async function handleShowMatches() {
     // prefer server-side recommendations via POST to /rekomendasi
@@ -132,12 +102,6 @@ export default function PreferenceFlow() {
                       <div style={{ fontSize: 20, fontWeight: 600 }}>{f.label}</div>
                       <span className="kp-mono" style={{ fontSize: 10, color: isActive ? 'var(--brown-3)' : 'var(--text-dim)' }}>pick</span>
                     </div>
-                    <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 8 }}>
-                      {f.id === 'manis' && 'Sweet, caramel, honey notes.'}
-                      {f.id === 'pahit' && 'Bitter-forward, dark chocolate and smoke.'}
-                      {f.id === 'balanced' && 'Even, rounded, easy to sip.'}
-                      {f.id === 'strong' && 'High-caffeine, espresso-forward.'}
-                    </div>
                   </div>
                 );
               })}
@@ -161,12 +125,11 @@ export default function PreferenceFlow() {
                   const isActive = temp === t.id;
                   return (
                     <div key={t.id} onClick={() => setTemp(t.id)} className="kp-card" style={{
-                      padding: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: 20, cursor: 'pointer', display: 'flex', alignItems: 'center',
                       border: isActive ? '1px solid rgba(168,131,95,0.55)' : '1px solid var(--line)',
                       background: isActive ? 'linear-gradient(160deg, rgba(107,79,58,0.12), rgba(107,79,58,0.02))' : 'var(--surface)'
                     }}>
                       <div style={{ fontSize: 16 }}>{t.label}</div>
-                      <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t.id === 'hot' ? 'Warm & cozy' : 'Refreshing & cold'}</div>
                     </div>
                   );
                 })}
@@ -190,7 +153,6 @@ export default function PreferenceFlow() {
             </div>
             <div>
               <div style={{ fontSize: 16, fontWeight: 700 }}>{currentMood.name}</div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{currentMood.tagline}</div>
             </div>
           </div>
 

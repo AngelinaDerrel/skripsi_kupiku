@@ -5,13 +5,6 @@ import { useCart } from '../context/CartContext.jsx';
 import CustomizationModal from '../components/CustomizationModal.jsx';
 import CartDrawer from '../components/CartDrawer.jsx';
 
-const FLAVOR_KEYWORDS = {
-  manis: ['honey', 'caramel', 'almond', 'sugar', 'butter'],
-  pahit: ['cacao', 'tobacco', 'cocoa', 'smoke'],
-  balance: [],
-  strong: [],
-};
-
 export default function Results() {
   const nav = useNavigate();
   const { state } = useLocation();
@@ -48,19 +41,10 @@ export default function Results() {
   function applyFilters() {
     let items = MENU_ITEMS.slice();
     if (mood) items = items.filter(i => i.mood && i.mood.toLowerCase() === mood.toLowerCase());
-
-    if (flavor && FLAVOR_KEYWORDS[flavor] && FLAVOR_KEYWORDS[flavor].length) {
-      const keys = FLAVOR_KEYWORDS[flavor];
-      items = items.filter(i => i.notes && i.notes.some(n => keys.includes(n.toLowerCase())));
-    } else if (flavor === 'strong') {
-      items = items.filter(i => i.cat === 'black' || /espresso|strong/i.test(i.name));
-    }
-
     if (temp) {
       if (temp === 'hot') items = items.filter(i => /hot/i.test(i.name) || ['classic','latte'].includes(i.cat));
       if (temp === 'ice') items = items.filter(i => /cold|iced|ice|brew/i.test(i.name) || ['mocktail','signature'].includes(i.cat));
     }
-
     return items;
   }
 
@@ -113,17 +97,11 @@ export default function Results() {
             <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-muted)' }}>Rule: {serverRule}</div>
           )}
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingBottom: 8 }}>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 8, gap: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
             <span className="kp-chip">{(serverInput?.mood || mood || 'MOOD').toUpperCase()}</span>
           </div>
-          <div style={{ display: 'flex', gap: 12, fontSize: 12, color: 'var(--text-muted)' }}>
-            <span>Sort: <span style={{ color: 'var(--text)' }}>Best match</span></span>
-            <span style={{ color: 'var(--text-dim)' }}>·</span>
-            <span>Body</span>
-            <span style={{ color: 'var(--text-dim)' }}>·</span>
-            <span>Price</span>
-          </div>
+          <button className="kp-btn kp-btn-sm" onClick={() => nav('/menu')}>Back To Menu</button>
         </div>
       </div>
 
@@ -182,12 +160,10 @@ export default function Results() {
                     {matches[0].desc}
                   </p>
                   <div style={{ display: 'flex', gap: 28, marginTop: 22 }}>
-                    {[{ l: 'TEMP', v: temp ? temp.toUpperCase() : 'HOT' }, { l: 'SCORE', v: matches[0].score != null ? matches[0].score : '—' }].map(s => (
-                      <div key={s.l}>
-                        <div className="kp-eyebrow" style={{ fontSize: 9 }}>{s.l}</div>
-                        <div className="kp-mono" style={{ fontSize: 13, marginTop: 4 }}>{s.v}</div>
-                      </div>
-                    ))}
+                    <div>
+                      <div className="kp-eyebrow" style={{ fontSize: 9 }}>TEMP</div>
+                      <div className="kp-mono" style={{ fontSize: 13, marginTop: 4 }}>{temp ? temp.toUpperCase() : 'HOT'}</div>
+                    </div>
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 10, marginTop: 28, alignItems: 'center' }}>
@@ -300,7 +276,6 @@ export default function Results() {
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
             <button className="kp-btn kp-btn-ghost kp-btn-sm" onClick={() => nav('/mood')}>Recalibrate</button>
-            <button className="kp-btn kp-btn-sm" onClick={() => nav('/menu')}>Back To Menu</button>
           </div>
         </div>
       </div>

@@ -27,9 +27,9 @@ export default function App() {
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
-      <Route path="/mood" element={<ProtectedRoute><MoodSelection /></ProtectedRoute>} />
-      <Route path="/preferences" element={<ProtectedRoute><PreferenceFlow /></ProtectedRoute>} />
-      <Route path="/results" element={<ProtectedRoute><Results /></ProtectedRoute>} />
+      <Route path="/mood" element={<MoodSelection />} />
+      <Route path="/preferences" element={<PreferenceFlow />} />
+      <Route path="/results" element={<Results />} />
       <Route path="/menu" element={<Menu />} />
       <Route path="/order" element={<ProtectedRoute><OrderSummary /></ProtectedRoute>} />
       <Route path="/order/confirm" element={<ProtectedRoute><OrderConfirm /></ProtectedRoute>} />

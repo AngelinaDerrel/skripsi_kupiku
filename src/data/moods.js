@@ -2,7 +2,6 @@ export const MOODS = [
   {
     id: 'happy',
     name: 'Happy',
-    tagline: 'Bright & uplifting',
     desc: 'A sunlit morning in a cup',
     pair: 'Citrus Cold Brew',
     intensity: 0.7,
@@ -11,7 +10,6 @@ export const MOODS = [
   {
     id: 'sad',
     name: 'Sad',
-    tagline: 'Warm & comforting',
     desc: 'Soft, sweet, a quiet hug',
     pair: 'Honey Oat Latte',
     intensity: 0.4,
@@ -20,7 +18,6 @@ export const MOODS = [
   {
     id: 'calm',
     name: 'Calm',
-    tagline: 'Slow & rounded',
     desc: 'Steady, balanced, unhurried',
     pair: 'Cedar Pour-Over',
     intensity: 0.5,
@@ -29,7 +26,6 @@ export const MOODS = [
   {
     id: 'stressed',
     name: 'Stressed',
-    tagline: 'Sharp & focused',
     desc: 'A hit of clarity, fast',
     pair: 'Double Ristretto',
     intensity: 0.95,
@@ -38,7 +34,6 @@ export const MOODS = [
   {
     id: 'neutral',
     name: 'Neutral',
-    tagline: 'House standard',
     desc: 'Reliable, no surprises',
     pair: 'Classic Flat White',
     intensity: 0.55,
@@ -47,7 +42,6 @@ export const MOODS = [
   {
     id: 'angry',
     name: 'Angry',
-    tagline: 'Bold & smoky',
     desc: 'Earthy, dark, grounding',
     pair: 'Smoked Espresso',
     intensity: 0.85,

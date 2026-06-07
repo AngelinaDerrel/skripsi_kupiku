@@ -21,10 +21,10 @@ export default function Register() {
     e.preventDefault();
 
     const newErrors = {};
-    if (!form.name.trim()) newErrors.name = 'Nama tidak boleh kosong';
-    if (!form.email.trim()) newErrors.email = 'Email tidak boleh kosong';
-    if (form.password.length < 8) newErrors.password = 'Password minimal 8 karakter';
-    if (form.password !== form.password_confirmation) newErrors.password_confirmation = 'Password tidak cocok';
+    if (!form.name.trim()) newErrors.name = 'Name is required';
+    if (!form.email.trim()) newErrors.email = 'Email is required';
+    if (form.password.length < 8) newErrors.password = 'Password must be at least 8 characters';
+    if (form.password !== form.password_confirmation) newErrors.password_confirmation = 'Passwords do not match';
     if (Object.keys(newErrors).length) {
       setErrors(newErrors);
       return;
@@ -44,7 +44,7 @@ export default function Register() {
         if (apiErrors.name) mapped.name = apiErrors.name[0];
         setErrors(mapped);
       } else {
-        toast('Terjadi kesalahan. Periksa koneksi anda.', 'warn');
+        toast('An error occurred. Please check your connection.', 'warn');
       }
     }
   }
@@ -78,30 +78,29 @@ export default function Register() {
         <div className="kp-auth-copy">
           <div className="kp-eyebrow" style={{ marginBottom: 28, display: 'flex', alignItems: 'center', gap: 12 }}>
             <span style={{ width: 24, height: 1, background: 'var(--brown-2)' }}></span>
-            Bergabung · mood vault
+            Join us · mood vault
           </div>
 
           <h1 className="kp-display kp-h1-auth" style={{
             color: 'var(--text)',
             textWrap: 'balance'
           }}>
-            Temukan kopi<br />
-            yang <span style={{ fontStyle: 'italic', color: 'var(--brown-3)' }}>tepat untukmu.</span>
+            Sign up to start<br />
+            your <span style={{ fontStyle: 'italic', color: 'var(--brown-3)' }}>coffee journey.</span>
           </h1>
 
           <p style={{
             fontSize: 15, lineHeight: 1.65, color: 'var(--text-muted)',
             maxWidth: 420, marginTop: 28, marginBottom: 0
           }}>
-            Daftar sebagai member Kupiku untuk menikmati fitur mood selection,
-            rekomendasi kopi personal, dan riwayat pesanan anda.
+            Create a Kupiku account to enjoy mood-based coffee selection,
+            personalised recommendations, and your full order history.
           </p>
 
           <div style={{ marginTop: 40, display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 380 }}>
             {[
-              { t: 'Rekomendasi kopi personal', d: 'Kami belajar dari mood dan pilihan anda setiap kunjungan.' },
-              { t: 'Riwayat mood tersimpan', d: 'Akses kembali favorit anda kapan saja.' },
-              { t: 'Gratis & aman', d: 'Tidak ada biaya tersembunyi, data anda tidak dijual.' },
+              { t: 'Personal coffee recommendations', d: 'We learn from your mood and choices every visit.' },
+              { t: 'Free & secure', d: 'No hidden fees, your data is never sold.' },
             ].map((item, i) => (
               <div key={i} style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
                 <div style={{
@@ -141,15 +140,15 @@ export default function Register() {
               }} />
             </div>
 
-            <div className="kp-eyebrow" style={{ marginBottom: 10, fontSize: 10 }}>Anggota baru</div>
+            <div className="kp-eyebrow" style={{ marginBottom: 10, fontSize: 10 }}>New member</div>
             <h2 className="kp-display" style={{ fontSize: 32, lineHeight: 1.05, margin: 0, color: 'var(--text)' }}>
-              Buat Akun
+              Create Account
             </h2>
             <p style={{
               fontSize: 13, lineHeight: 1.6, color: 'var(--text-muted)',
               marginTop: 12, marginBottom: 28
             }}>
-              Isi form berikut untuk mendaftar sebagai member Kupiku.
+              Fill in the form below to register as a Kupiku member.
             </p>
 
             <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 12 }}>
@@ -158,7 +157,7 @@ export default function Register() {
                   type="text"
                   value={form.name}
                   onChange={e => set('name', e.target.value)}
-                  placeholder="Nama lengkap"
+                  placeholder="Full name"
                   style={inputStyle('name')}
                 />
                 {errors.name && (
@@ -188,7 +187,7 @@ export default function Register() {
                   type="password"
                   value={form.password}
                   onChange={e => set('password', e.target.value)}
-                  placeholder="Password (minimal 8 karakter)"
+                  placeholder="Password (min. 8 characters)"
                   style={inputStyle('password')}
                 />
                 {errors.password && (
@@ -203,7 +202,7 @@ export default function Register() {
                   type="password"
                   value={form.password_confirmation}
                   onChange={e => set('password_confirmation', e.target.value)}
-                  placeholder="Konfirmasi password"
+                  placeholder="Confirm password"
                   style={inputStyle('password_confirmation')}
                 />
                 {errors.password_confirmation && (
@@ -219,7 +218,7 @@ export default function Register() {
                 disabled={status === 'loading'}
                 style={{ width: '100%', marginTop: 4, opacity: status === 'loading' ? 0.6 : 1 }}
               >
-                {status === 'loading' ? 'Mendaftar…' : 'Daftar Sekarang'}
+                {status === 'loading' ? 'Signing up…' : 'Sign Up'}
               </button>
             </form>
 
@@ -229,19 +228,19 @@ export default function Register() {
               display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center'
             }}>
               <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                Sudah punya akun?{' '}
+                Already have an account?{' '}
                 <Link
                   to="/login"
                   style={{ color: 'var(--brown-3)', textDecoration: 'none', fontWeight: 500 }}
                 >
-                  Masuk di sini
+                  Sign in
                 </Link>
               </div>
               <div style={{
                 fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text-dim)',
                 letterSpacing: '0.08em', textTransform: 'uppercase'
               }}>
-                Kupiku · MMXXIV · Brewed in Bandung
+                Kupiku Auth · v1.5.0
               </div>
             </div>
           </div>
@@ -254,9 +253,6 @@ export default function Register() {
         letterSpacing: '0.08em', textTransform: 'uppercase',
         position: 'relative', zIndex: 1
       }}>
-        <span>WITH REGISTRATION, YOU AGREE TO OUR TERMS</span>
-        <span>EST · KUPIKU · MMXXIV</span>
-        <span>BREWED IN BANDUNG</span>
       </div>
     </div>
   );

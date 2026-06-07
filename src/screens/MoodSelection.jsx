@@ -1,5 +1,5 @@
 import React from 'react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MOODS } from '../data/moods.js';
 import MoodGlyph from '../components/MoodGlyph.jsx';
@@ -7,16 +7,6 @@ import MoodGlyph from '../components/MoodGlyph.jsx';
 export default function MoodSelection() {
   const nav = useNavigate();
 
-  // Proteksi halaman mood
-  useEffect(() => {
-    const user = localStorage.getItem('kupiku_user');
-
-    if (!user) {
-      nav('/login', {
-        state: { next: '/mood' },
-      });
-    }
-  }, []);
 
   const [moodsList] = useState(MOODS);
   const [active, setActive] = useState(MOODS[0]?.id || null);
@@ -27,7 +17,7 @@ export default function MoodSelection() {
   return (
     <div className="kp" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <div className="kp-step-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, flex: 1 }}>
           <span className="kp-mono" style={{ fontSize: 12, color: 'var(--text-muted)', cursor: 'pointer' }} onClick={() => nav('/')}>← Back</span>
           <span style={{ width: 1, height: 16, background: 'var(--line-strong)' }} />
           <div className="kp-eyebrow">Step 01 / 03</div>
@@ -37,7 +27,7 @@ export default function MoodSelection() {
           <div style={{ width: 80, height: 2, background: 'var(--surface-3)' }} />
           <div style={{ width: 80, height: 2, background: 'var(--surface-3)' }} />
         </div>
-        <span className="kp-mono kp-step-hint" style={{ fontSize: 11, color: 'var(--text-muted)' }}>kupiku.id/discover</span>
+        <div style={{ flex: 1 }} />
       </div>
 
       <div className="kp-mood-layout">
@@ -72,7 +62,6 @@ export default function MoodSelection() {
                   </div>
                   <div>
                     <div style={{ fontSize: 20, fontWeight: 500, letterSpacing: '-0.01em' }}>{m.name}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>{m.tagline}</div>
                   </div>
                   {isActive && (
                     <div style={{ position: 'absolute', top: 14, right: 14, width: 8, height: 8, borderRadius: '50%', background: 'var(--brown-3)', boxShadow: '0 0 0 4px rgba(168,131,95,0.2)' }} />
@@ -103,7 +92,6 @@ export default function MoodSelection() {
             </div>
             <div>
               <div style={{ fontSize: 16, fontWeight: 700 }}>{current.name}</div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{current.tagline}</div>
             </div>
           </div>
 
