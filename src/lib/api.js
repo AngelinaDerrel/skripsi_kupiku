@@ -7,7 +7,9 @@ function buildUrl(path) {
 
 async function request(path, { method = 'GET', body = null, headers = {}, credentials = 'omit' } = {}) {
   const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
-  const mergedHeaders = isFormData ? { ...headers } : { 'Content-Type': 'application/json', ...headers };
+  const mergedHeaders = isFormData
+    ? { 'Accept': 'application/json', ...headers }
+    : { 'Content-Type': 'application/json', 'Accept': 'application/json', ...headers };
   const opts = { method, headers: mergedHeaders, credentials };
   if (body) opts.body = isFormData ? body : JSON.stringify(body);
 

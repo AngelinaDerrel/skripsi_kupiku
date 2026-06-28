@@ -2,7 +2,6 @@ import React from 'react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MOODS } from '../data/moods.js';
-import MoodGlyph from '../components/MoodGlyph.jsx';
 
 export default function MoodSelection() {
   const nav = useNavigate();
@@ -55,7 +54,11 @@ export default function MoodSelection() {
                   display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <MoodGlyph shape={m.shape} active={isActive} />
+                    <span style={{
+                      fontSize: 32, lineHeight: 1,
+                      filter: isActive ? 'drop-shadow(0 0 8px rgba(168,131,95,0.5))' : 'none',
+                      transition: 'filter 220ms ease',
+                    }}>{m.emoji}</span>
                     <span className="kp-mono" style={{ fontSize: 10, color: isActive ? 'var(--brown-3)' : 'var(--text-dim)', letterSpacing: '0.08em' }}>
                       0{idx + 1}
                     </span>
@@ -88,7 +91,7 @@ export default function MoodSelection() {
 
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
             <div style={{ width: 56, height: 56, borderRadius: 12, background: 'rgba(107,79,58,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <MoodGlyph shape={current.shape} active />
+              <span style={{ fontSize: 28, lineHeight: 1 }}>{current.emoji}</span>
             </div>
             <div>
               <div style={{ fontSize: 16, fontWeight: 700 }}>{current.name}</div>

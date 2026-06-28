@@ -52,6 +52,7 @@ export default function StokMasuk() {
 
   const { search, setSearch } = useContext(StaffSearchContext);
   const [toast, setToast] = useState({ visible: false, message: '', ok: true });
+  const [bahanSearch, setBahanSearch] = useState('');
 
   // Get logged-in user info once
   const loggedUser = useMemo(() => {
@@ -213,10 +214,10 @@ export default function StokMasuk() {
   }
 
   const filteredBahan = useMemo(() => {
-    if (!search.trim()) return bahanList;
-    const q = search.toLowerCase();
+    const q = (bahanSearch || search).trim().toLowerCase();
+    if (!q) return bahanList;
     return bahanList.filter((b) => b.name.toLowerCase().includes(q));
-  }, [bahanList, search]);
+  }, [bahanList, bahanSearch, search]);
 
   const todayHistory = useMemo(() => history.filter((e) => isToday(e.created_at)), [history]);
 
@@ -231,7 +232,7 @@ export default function StokMasuk() {
     cursor: 'pointer',
     fontSize: 13,
     fontWeight: activeTab === key ? 600 : 400,
-    color: activeTab === key ? 'var(--text)' : 'var(--text-muted)',
+    color: 'var(--text)',
     marginBottom: -1,
     transition: 'color 120ms',
   });
@@ -247,14 +248,35 @@ export default function StokMasuk() {
             <h1 style={{ fontSize: 20, margin: '4px 0 0' }}>Stok masuk</h1>
           </div>
           {activeTab === 'input' && (
-            <button
-              className="kp-btn"
-              style={{ padding: '8px 20px', fontSize: 13, alignSelf: 'flex-end' }}
-              onClick={handleSimpanSemua}
-              disabled={savingAll || savingId !== null}
-            >
-              {savingAll ? 'Menyimpan...' : 'Simpan Semua'}
-            </button>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '8px 12px', borderRadius: 8,
+                background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.14)', width: 240,
+              }}>
+                <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+                  <circle cx="6" cy="6" r="4" stroke="var(--text-muted)" strokeWidth="1.4" />
+                  <path d="M9 9l3 3" stroke="var(--text-muted)" strokeWidth="1.4" strokeLinecap="round" />
+                </svg>
+                <input
+                  value={bahanSearch}
+                  onChange={e => setBahanSearch(e.target.value)}
+                  placeholder="Cari bahan baku..."
+                  style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: 13, color: 'var(--text)', fontFamily: 'var(--font-sans)' }}
+                />
+                {bahanSearch && (
+                  <button onClick={() => setBahanSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 16, padding: 0, lineHeight: 1 }}>×</button>
+                )}
+              </div>
+              <button
+                className="kp-btn"
+                style={{ padding: '8px 20px', fontSize: 13 }}
+                onClick={handleSimpanSemua}
+                disabled={savingAll || savingId !== null}
+              >
+                {savingAll ? 'Menyimpan...' : 'Simpan Semua'}
+              </button>
+            </div>
           )}
           {activeTab === 'riwayat' && (
             <button
@@ -280,8 +302,8 @@ export default function StokMasuk() {
                 marginLeft: 6,
                 padding: '1px 7px',
                 borderRadius: 20,
-                background: activeTab === 'riwayat' ? '#6B4F3A' : 'var(--line)',
-                color: activeTab === 'riwayat' ? '#fff' : 'var(--text-muted)',
+                background: activeTab === 'riwayat' ? '#6B4F3A' : 'var(--surface-3)',
+                color: '#fff',
                 fontSize: 11,
                 fontWeight: 600,
                 verticalAlign: 'middle',
@@ -302,7 +324,7 @@ export default function StokMasuk() {
                 padding: '12px 16px', borderBottom: '1px solid var(--line)',
                 fontSize: 11, fontFamily: 'var(--font-mono)',
                 textTransform: 'uppercase', letterSpacing: '0.08em',
-                color: 'var(--text-muted)', background: 'rgba(255,255,255,0.015)',
+                color: 'var(--text)', background: 'rgba(255,255,255,0.025)',
                 minWidth: 640,
               }}>
                 <span>Nama Bahan</span>
@@ -340,7 +362,7 @@ export default function StokMasuk() {
                     }}
                   >
                     <div style={{ fontWeight: 500, fontSize: 13 }}>{bahan.name}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{bahan.unit || '-'}</div>
+                    <div style={{ fontSize: 12 }}>{bahan.unit || '-'}</div>
                     <div>
                       <input
                         type="number"
@@ -381,7 +403,7 @@ export default function StokMasuk() {
         {activeTab === 'riwayat' && (
           <section>
             <div style={{ marginBottom: 10 }}>
-              <div className="kp-mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+              <div className="kp-mono" style={{ fontSize: 11 }}>
                 {todayHistory.length} entri tercatat hari ini
               </div>
             </div>
@@ -392,7 +414,7 @@ export default function StokMasuk() {
                 padding: '12px 16px', borderBottom: '1px solid var(--line)',
                 fontSize: 11, fontFamily: 'var(--font-mono)',
                 textTransform: 'uppercase', letterSpacing: '0.08em',
-                color: 'var(--text-muted)', background: 'rgba(255,255,255,0.015)',
+                color: 'var(--text)', background: 'rgba(255,255,255,0.025)',
                 minWidth: 680,
               }}>
                 <span>Tanggal &amp; Jam</span>
@@ -438,15 +460,15 @@ export default function StokMasuk() {
                     }}
                   >
                     <div>
-                      <div className="kp-mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{tglLabel}</div>
+                      <div className="kp-mono" style={{ fontSize: 11 }}>{tglLabel}</div>
                       <div className="kp-mono" style={{ fontSize: 12, marginTop: 1 }}>{jamLabel}</div>
                     </div>
                     <span style={{ fontWeight: 500 }}>{namaBahan}</span>
                     <span style={{ fontWeight: 600 }}>
                       {formatNumber(entry.jumlah)}{satuan ? ` ${satuan}` : ''}
                     </span>
-                    <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{entry.keterangan || '-'}</span>
-                    <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{namaStaff}</span>
+                    <span style={{ fontSize: 12 }}>{entry.keterangan || '-'}</span>
+                    <span style={{ fontSize: 12 }}>{namaStaff}</span>
                   </div>
                 );
               })}

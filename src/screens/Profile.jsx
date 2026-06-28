@@ -4,6 +4,7 @@ import AdminLayout from '../components/AdminLayout.jsx';
 import StaffLayout from './StaffLayout.jsx';
 import NavIcon from '../components/NavIcon.jsx';
 import api from '../lib/api.js';
+import PasswordInput from '../components/PasswordInput.jsx';
 
 const BASE = import.meta.env.VITE_API_URL || '/api';
 
@@ -416,15 +417,15 @@ function ProfilTab({ storedUser, token, onNameUpdate }) {
           <form onSubmit={handleChangePassword}>
             <div style={{ marginBottom: 14 }}>
               <label style={labelStyle}>Password Saat Ini</label>
-              <input type="password" value={currentPw} onChange={e => setCurrentPw(e.target.value)} required style={inputStyle} />
+              <PasswordInput value={currentPw} onChange={e => setCurrentPw(e.target.value)} required style={inputStyle} />
             </div>
             <div style={{ marginBottom: 14 }}>
               <label style={labelStyle}>Password Baru</label>
-              <input type="password" value={newPw} onChange={e => setNewPw(e.target.value)} required minLength={8} style={inputStyle} />
+              <PasswordInput value={newPw} onChange={e => setNewPw(e.target.value)} required minLength={8} style={inputStyle} />
             </div>
             <div style={{ marginBottom: 14 }}>
               <label style={labelStyle}>Konfirmasi Password Baru</label>
-              <input type="password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} required style={inputStyle} />
+              <PasswordInput value={confirmPw} onChange={e => setConfirmPw(e.target.value)} required style={inputStyle} />
             </div>
             {pwMsg && (
               <div style={{ fontSize: 12, marginBottom: 12, color: pwMsg.type === 'success' ? 'var(--good)' : '#e05252' }}>
@@ -766,15 +767,15 @@ export default function Profile() {
           <form onSubmit={handleChangePassword}>
             <div style={{ marginBottom: 14 }}>
               <label style={labelStyle}>Password Saat Ini</label>
-              <input type="password" value={currentPw} onChange={e => setCurrentPw(e.target.value)} required style={inputStyle} />
+              <PasswordInput value={currentPw} onChange={e => setCurrentPw(e.target.value)} required style={inputStyle} />
             </div>
             <div style={{ marginBottom: 14 }}>
               <label style={labelStyle}>Password Baru</label>
-              <input type="password" value={newPw} onChange={e => setNewPw(e.target.value)} required minLength={8} style={inputStyle} />
+              <PasswordInput value={newPw} onChange={e => setNewPw(e.target.value)} required minLength={8} style={inputStyle} />
             </div>
             <div style={{ marginBottom: 14 }}>
               <label style={labelStyle}>Konfirmasi Password Baru</label>
-              <input type="password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} required style={inputStyle} />
+              <PasswordInput value={confirmPw} onChange={e => setConfirmPw(e.target.value)} required style={inputStyle} />
             </div>
             {pwMsg && <div style={{ fontSize: 12, marginBottom: 12, color: pwMsg.type === 'success' ? 'var(--good)' : '#e05252' }}>{pwMsg.text}</div>}
             <button type="submit" className="kp-btn" disabled={pwLoading} style={{ fontSize: 13 }}>

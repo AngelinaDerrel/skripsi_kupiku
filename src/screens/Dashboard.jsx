@@ -12,9 +12,9 @@ function CategoryFilter({ value, onChange, categories }) {
         return (
           <button key={c.id} onClick={() => onChange(c.id)} style={{
             padding: '6px 12px', borderRadius: 999, border: 'none',
-            background: active ? 'rgba(107,79,58,0.12)' : 'transparent',
-            boxShadow: active ? 'inset 0 0 0 1px rgba(107,79,58,0.12)' : 'none',
-            fontSize: 12, color: active ? 'var(--brown-3)' : 'var(--text-muted)', cursor: 'pointer'
+            background: active ? 'rgba(107,79,58,0.18)' : 'transparent',
+            boxShadow: active ? 'inset 0 0 0 1px rgba(168,131,95,0.45)' : 'none',
+            fontSize: 12, color: active ? 'var(--brown-3)' : 'var(--text)', cursor: 'pointer'
           }}>{c.label}</button>
         );
       })}
@@ -153,6 +153,9 @@ export default function Dashboard() {
   const [newDrinkCategoryId, setNewDrinkCategoryId] = useState('');
   const [newDrinkImage, setNewDrinkImage] = useState(null);
   const [newDrinkImagePreview, setNewDrinkImagePreview] = useState('');
+  const [newDrinkDescription, setNewDrinkDescription] = useState('');
+  const [newDrinkTemperature, setNewDrinkTemperature] = useState('both');
+  const [newDrinkFlavorType, setNewDrinkFlavorType] = useState('');
   const [newDrinkIngredients, setNewDrinkIngredients] = useState([
     { stockId: '', amount: '' },
   ]);
@@ -167,6 +170,8 @@ export default function Dashboard() {
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState('');
   const [successToast, setSuccessToast] = useState({ visible: false, message: '' });
+  const [errorToast, setErrorToast] = useState({ visible: false, message: '' });
+  const [priceError, setPriceError] = useState('');
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [detailItem, setDetailItem] = useState(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -189,7 +194,7 @@ export default function Dashboard() {
   };
 
   const mapMenuItems = (arr) =>
-    arr.map((item, idx) => {
+    arr.filter((item) => item && typeof item === 'object').map((item, idx) => {
       const reseps = Array.isArray(item.reseps) ? item.reseps : (Array.isArray(item.resep) ? item.resep : []);
       const categoryLabel =
         pickString(item.kategori, ['kategori', 'nama_kategori', 'namaKategori', 'nama', 'category', 'label']) ||
@@ -252,6 +257,12 @@ export default function Dashboard() {
     const timer = setTimeout(() => setSuccessToast({ visible: false, message: '' }), 2200);
     return () => clearTimeout(timer);
   }, [successToast.visible]);
+
+  useEffect(() => {
+    if (!errorToast.visible) return undefined;
+    const timer = setTimeout(() => setErrorToast({ visible: false, message: '' }), 2500);
+    return () => clearTimeout(timer);
+  }, [errorToast.visible]);
 
   useEffect(() => {
     if (!newDrinkImage) {
@@ -337,14 +348,23 @@ export default function Dashboard() {
     setNewDrinkName('');
     setNewDrinkPrice('');
     setNewDrinkCategoryId('');
+    setNewDrinkDescription('');
+    setNewDrinkTemperature('both');
+    setNewDrinkFlavorType('');
     setNewDrinkImage(null);
     setNewDrinkIngredients([{ stockId: '', amount: '' }]);
     setSubmitError('');
+    setPriceError('');
   }
 
   function closeNewDrinkModal() {
     setIsNewDrinkOpen(false);
     setSubmitError('');
+    setPriceError('');
+  }
+
+  function showErrorToast(message) {
+    setErrorToast({ visible: true, message });
   }
 
   function updateIngredient(index, field, value) {
@@ -422,26 +442,46 @@ export default function Dashboard() {
       alert('Nama menu wajib diisi.');
       return;
     }
+
+    const isDuplicate = menuItems.some(
+      (item) => item.name.toLowerCase() === trimmedName.toLowerCase()
+    );
+    if (isDuplicate) {
+      showErrorToast('Gagal Menambah Menu Karena Ditemukan Nama Menu Serupa');
+      return;
+    }
+
     if (!newDrinkCategoryId) {
       alert('Kategori wajib dipilih.');
       return;
     }
 
-    const parsedPrice = Number(String(newDrinkPrice).replace(/[^0-9.]/g, ''));
-    if (!parsedPrice) {
-      alert('Harga wajib diisi.');
+    const rawPrice = parseFloat(newDrinkPrice);
+    if (!String(newDrinkPrice).trim() || isNaN(rawPrice)) {
+      setPriceError('Harga wajib diisi.');
+      showErrorToast('Gagal Menambah Menu');
       return;
     }
+    if (rawPrice <= 0) {
+      setPriceError('Harga Yang Dimasukkan harus lebih dari 0!');
+      showErrorToast('Gagal Menambah Menu');
+      return;
+    }
+    setPriceError('');
+    const parsedPrice = Math.round(rawPrice);
 
     const bahanPayload = newDrinkIngredients
       .filter((row) => row.stockId && row.amount)
-      .map((row) => {
-        return {
-          id_bahan: row.stockId,
-          jumlah: Number(String(row.amount).replace(/[^0-9.]/g, '')),
-        };
-      })
+      .map((row) => ({
+        id_bahan: row.stockId,
+        jumlah: Number(String(row.amount).replace(/[^0-9.]/g, '')),
+      }))
       .filter((row) => row.id_bahan && row.jumlah);
+
+    if (bahanPayload.length === 0) {
+      showErrorToast('Gagal Menambah Menu, Belum ada bahan baku yang ditambahkan');
+      return;
+    }
 
     try {
       setIsSaving(true);
@@ -450,6 +490,13 @@ export default function Dashboard() {
       formData.append('harga', String(parsedPrice));
       if (newDrinkCategoryId) {
         formData.append('id_kategori', String(Number(newDrinkCategoryId)));
+      }
+      if (newDrinkDescription.trim()) {
+        formData.append('deskripsi', newDrinkDescription.trim());
+      }
+      formData.append('temperature', newDrinkTemperature || 'both');
+      if (newDrinkFlavorType) {
+        formData.append('flavor_type_menu', newDrinkFlavorType);
       }
       bahanPayload.forEach((row, index) => {
         formData.append(`bahan[${index}][id_bahan]`, String(row.id_bahan));
@@ -467,7 +514,7 @@ export default function Dashboard() {
     } catch (err) {
       const message = (err && err.message) || 'Gagal menambahkan menu.';
       setSubmitError(message);
-      alert(message);
+      showErrorToast(message);
     } finally {
       setIsSaving(false);
     }
@@ -575,7 +622,12 @@ export default function Dashboard() {
         </div>
 
         <div style={{ flex: 1, padding: '24px 32px', overflow: 'auto' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14,
+            padding: '8px 14px', borderRadius: 10,
+            border: '1px solid rgba(255,255,255,0.14)',
+            background: 'rgba(255,255,255,0.025)',
+          }}>
             <span className="kp-eyebrow" style={{ fontSize: 10, marginRight: 4 }}>FILTER</span>
             <CategoryFilter value={category} onChange={setCategory} categories={categories} />
             <div style={{ flex: 1 }} />
@@ -591,7 +643,7 @@ export default function Dashboard() {
               padding: '14px 18px', borderBottom: '1px solid var(--line)',
               fontSize: 11, fontFamily: 'var(--font-mono)',
               textTransform: 'uppercase', letterSpacing: '0.08em',
-              color: 'var(--text-muted)', background: 'rgba(255,255,255,0.015)'
+              color: 'var(--text)', background: 'rgba(255,255,255,0.025)'
             }}>
               <span>ID</span><span>Drink</span><span>Category</span><span>Price</span><span>Action</span>
             </div>
@@ -612,9 +664,9 @@ export default function Dashboard() {
                   borderBottom: i < displayed.length - 1 ? '1px solid var(--line)' : 'none',
                   fontSize: 13, alignItems: 'center'
                 }}>
-                  <span className="kp-mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{item.id}</span>
+                  <span className="kp-mono" style={{ fontSize: 11, color: 'var(--text)' }}>{item.id}</span>
                   <span style={{ fontWeight: 500 }}>{item.name}</span>
-                  <span style={{ color: 'var(--text-muted)' }}>{item.categoryLabel || '-'}</span>
+                  <span>{item.categoryLabel || '-'}</span>
                   <span className="kp-mono" style={{ fontSize: 12 }}>Rp {priceLabel}</span>
                   <span>
                     <div style={{ display: 'inline-flex', gap: 6 }}>
@@ -704,6 +756,56 @@ export default function Dashboard() {
         </div>
       </div>
 
+      <div
+        style={{
+          position: 'fixed',
+          top: 18,
+          right: 18,
+          zIndex: 60,
+          pointerEvents: 'none',
+          opacity: errorToast.visible ? 1 : 0,
+          transform: errorToast.visible ? 'translateY(0)' : 'translateY(-10px)',
+          transition: 'opacity 180ms ease, transform 180ms ease',
+        }}
+      >
+        <div
+          style={{
+            minWidth: 280,
+            maxWidth: 360,
+            padding: '12px 14px',
+            borderRadius: 12,
+            background: 'linear-gradient(135deg, rgba(180,40,40,0.96), rgba(90,10,10,0.97))',
+            border: '1px solid rgba(255,150,150,0.2)',
+            boxShadow: '0 18px 40px rgba(0,0,0,0.35)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            color: '#F6F2EE',
+          }}
+        >
+          <div
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: '50%',
+              background: 'rgba(255,255,255,0.18)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 14,
+            }}
+          >
+            ✕
+          </div>
+          <div>
+            <div className="kp-mono" style={{ fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', opacity: 0.8 }}>
+              Gagal
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 500 }}>{errorToast.message}</div>
+          </div>
+        </div>
+      </div>
+
       {isNewDrinkOpen && (
         <div
           role="presentation"
@@ -725,14 +827,16 @@ export default function Dashboard() {
             onClick={(e) => e.stopPropagation()}
             style={{
               width: 'min(640px, 100%)',
+              maxHeight: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
               background: 'var(--surface)',
               border: '1px solid var(--line)',
               borderRadius: 14,
-              padding: 22,
               boxShadow: '0 30px 60px rgba(0,0,0,0.4)',
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 18 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '22px 22px 18px', borderBottom: '1px solid var(--line)', flexShrink: 0 }}>
               <div>
                 <div className="kp-eyebrow" style={{ fontSize: 10 }}>Menu · New Drink</div>
                 <h2 style={{ margin: '6px 0 0', fontSize: 18 }}>Tambah menu baru</h2>
@@ -740,8 +844,8 @@ export default function Dashboard() {
               <button className="kp-btn kp-btn-ghost" onClick={closeNewDrinkModal}>Tutup</button>
             </div>
 
-            <form onSubmit={handleCreateMenu}>
-              <div style={{ display: 'grid', gap: 14 }}>
+            <form onSubmit={handleCreateMenu} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+              <div style={{ overflowY: 'auto', flex: 1, padding: '18px 22px', display: 'grid', gap: 14 }}>
                 <div style={{ display: 'grid', gap: 6 }}>
                   <label className="kp-mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>Nama menu</label>
                   <input
@@ -761,18 +865,25 @@ export default function Dashboard() {
                 <div style={{ display: 'grid', gap: 6 }}>
                   <label className="kp-mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>Harga</label>
                   <input
-                    value={newDrinkPrice}
-                    onChange={(e) => setNewDrinkPrice(e.target.value)}
-                    placeholder="Contoh: 18000"
+                    value={newDrinkPrice.replace(/\B(?=(\d{3})+(?!\d))/g, '.')}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, '');
+                      setNewDrinkPrice(digits);
+                      if (priceError) setPriceError('');
+                    }}
+                    placeholder="Contoh: 18.000"
                     inputMode="numeric"
                     style={{
                       padding: '10px 12px',
                       borderRadius: 10,
-                      border: '1px solid var(--line-strong)',
+                      border: priceError ? '1px solid #e53e3e' : '1px solid var(--line-strong)',
                       background: 'var(--surface)',
                       color: 'var(--text)',
                     }}
                   />
+                  {priceError && (
+                    <span style={{ fontSize: 12, color: '#e53e3e', marginTop: 2 }}>{priceError}</span>
+                  )}
                 </div>
 
                 <div style={{ display: 'grid', gap: 6 }}>
@@ -783,6 +894,59 @@ export default function Dashboard() {
                     options={categoryOptions}
                     placeholder="Pilih kategori"
                   />
+                </div>
+
+                <div style={{ display: 'grid', gap: 6 }}>
+                  <label className="kp-mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                    Deskripsi <span style={{ color: 'var(--text-dim)', fontFamily: 'var(--font-sans)', textTransform: 'none', letterSpacing: 0 }}>(opsional)</span>
+                  </label>
+                  <textarea
+                    value={newDrinkDescription}
+                    onChange={(e) => setNewDrinkDescription(e.target.value)}
+                    placeholder="Deskripsi singkat menu..."
+                    rows={3}
+                    style={{
+                      padding: '10px 12px',
+                      borderRadius: 10,
+                      border: '1px solid var(--line-strong)',
+                      background: 'var(--surface)',
+                      color: 'var(--text)',
+                      resize: 'vertical',
+                      fontFamily: 'var(--font-sans)',
+                      fontSize: 14,
+                      lineHeight: 1.5,
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                  <div style={{ display: 'grid', gap: 6 }}>
+                    <label className="kp-mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>Temperature</label>
+                    <Dropdown
+                      value={newDrinkTemperature}
+                      onChange={setNewDrinkTemperature}
+                      options={[
+                        { value: 'hot', label: 'Hot' },
+                        { value: 'ice', label: 'Ice' },
+                        { value: 'both', label: 'Hot & Ice' },
+                      ]}
+                      placeholder="Pilih temperature"
+                    />
+                  </div>
+                  <div style={{ display: 'grid', gap: 6 }}>
+                    <label className="kp-mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>Flavor type</label>
+                    <Dropdown
+                      value={newDrinkFlavorType}
+                      onChange={setNewDrinkFlavorType}
+                      options={[
+                        { value: 'sweet', label: 'Sweet' },
+                        { value: 'bitter', label: 'Bitter' },
+                        { value: 'sour', label: 'Sour' },
+                        { value: 'balanced', label: 'Balanced' },
+                      ]}
+                      placeholder="Pilih flavor type"
+                    />
+                  </div>
                 </div>
 
                 <div style={{ display: 'grid', gap: 8 }}>
@@ -864,17 +1028,19 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20 }}>
-                <button type="button" className="kp-btn kp-btn-ghost" onClick={closeNewDrinkModal}>Batal</button>
-                <button type="submit" className="kp-btn" disabled={isSaving}>
-                  {isSaving ? 'Menyimpan...' : 'Simpan'}
-                </button>
-              </div>
-              {submitError && (
-                <div style={{ marginTop: 10, color: 'var(--bad)', fontSize: 12 }}>
-                  {submitError}
+              <div style={{ padding: '14px 22px 22px', borderTop: '1px solid var(--line)', flexShrink: 0 }}>
+                {submitError && (
+                  <div style={{ marginBottom: 10, color: 'var(--bad)', fontSize: 12 }}>
+                    {submitError}
+                  </div>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                  <button type="button" className="kp-btn kp-btn-ghost" onClick={closeNewDrinkModal}>Batal</button>
+                  <button type="submit" className="kp-btn" disabled={isSaving}>
+                    {isSaving ? 'Menyimpan...' : 'Simpan'}
+                  </button>
                 </div>
-              )}
+              </div>
             </form>
           </div>
         </div>
@@ -1143,7 +1309,7 @@ export default function Dashboard() {
               <button className="kp-btn kp-btn-ghost" onClick={closeDeleteModal}>Tutup</button>
             </div>
 
-            <div style={{ display: 'grid', gap: 10, color: 'var(--text-muted)', fontSize: 13 }}>
+            <div style={{ display: 'grid', gap: 10, fontSize: 13 }}>
               <div>
                 Kamu akan menghapus menu{' '}
                 <span style={{ color: 'var(--text)', fontWeight: 500 }}>

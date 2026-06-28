@@ -4,6 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import PublicNavbar from '../components/PublicNavbar.jsx';
 import { useToast } from '../components/Toast.jsx';
 import api from '../lib/api.js';
+import PasswordInput from '../components/PasswordInput.jsx';
 
 export default function Register() {
   const nav = useNavigate();
@@ -19,6 +20,7 @@ export default function Register() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    console.log('API URL:', import.meta.env.VITE_API_URL);
 
     const newErrors = {};
     if (!form.name.trim()) newErrors.name = 'Name is required';
@@ -35,11 +37,19 @@ export default function Register() {
       await api.post('/register', form);
       nav('/login', { state: { registered: true } });
     } catch (err) {
+      console.log('Register error:', err.status, JSON.stringify(err.data));
       setStatus('idle');
       if (err.status === 422) {
         const apiErrors = err.data?.errors || {};
         const mapped = {};
-        if (apiErrors.email) mapped.email = apiErrors.email[0];
+        if (apiErrors.email) {
+          const msg = apiErrors.email[0].toLowerCase();
+          if (msg.includes('already been taken') || msg.includes('already taken') || msg.includes('sudah terdaftar')) {
+            toast('Email Anda Sudah Terdaftar di Sistem', 'error');
+          } else {
+            mapped.email = apiErrors.email[0];
+          }
+        }
         if (apiErrors.password) mapped.password = apiErrors.password[0];
         if (apiErrors.name) mapped.name = apiErrors.name[0];
         setErrors(mapped);
@@ -183,8 +193,7 @@ export default function Register() {
               </div>
 
               <div>
-                <input
-                  type="password"
+                <PasswordInput
                   value={form.password}
                   onChange={e => set('password', e.target.value)}
                   placeholder="Password (min. 8 characters)"
@@ -198,8 +207,7 @@ export default function Register() {
               </div>
 
               <div>
-                <input
-                  type="password"
+                <PasswordInput
                   value={form.password_confirmation}
                   onChange={e => set('password_confirmation', e.target.value)}
                   placeholder="Confirm password"

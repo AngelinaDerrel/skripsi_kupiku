@@ -2,6 +2,8 @@ import React from 'react';
 import { useState, useEffect } from 'react';
 import AdminLayout from '../components/AdminLayout.jsx';
 import api from '../lib/api.js';
+import { useToast } from '../components/Toast.jsx';
+import PasswordInput from '../components/PasswordInput.jsx';
 
 export default function Staff() {
   const [list, setList] = useState([]);
@@ -11,7 +13,6 @@ export default function Staff() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const [positions, setPositions] = useState([]);
   const [posLoading, setPosLoading] = useState(false);
   const [posError, setPosError] = useState(null);
@@ -20,6 +21,8 @@ export default function Staff() {
   const [editingId, setEditingId] = useState(null);
   const [searchStaff, setSearchStaff] = useState('');
 
+  const toast = useToast();
+
   const raw = localStorage.getItem('kupiku_user');
   let currentRole = null;
   try { currentRole = raw ? JSON.parse(raw).role : null; } catch { currentRole = null; }
@@ -27,10 +30,9 @@ export default function Staff() {
 
   async function handleAdd() {
     if (!name || !username) return;
-    if (!role) { setError('Pilih role dulu'); return; }
+    if (!role) { toast('Pilih role dulu', 'error'); return; }
 
     setLoading(true);
-    setError(null);
     try {
       const base = {
         nama_pegawai: name,
@@ -64,13 +66,12 @@ export default function Staff() {
       setName(''); setUsername(''); setPassword('');
       setShowAdd(false);
     } catch (err) {
-      const parts = [];
-      if (err?.message) parts.push(err.message);
-      if (err?.status) parts.push(`status:${err.status}`);
-      if (err?.data) {
-        try { parts.push(JSON.stringify(err.data)); } catch { parts.push(String(err.data)); }
+      const emailErrors = err?.data?.errors?.email_pegawai;
+      if (emailErrors && emailErrors.length > 0) {
+        toast(emailErrors[0], 'error');
+      } else {
+        toast(err?.message || 'Gagal menyimpan data staff', 'error');
       }
-      setError(parts.length ? parts.join(' — ') : 'Failed to create staff');
     } finally {
       setLoading(false);
     }
@@ -183,11 +184,11 @@ export default function Staff() {
             </colgroup>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--line)' }}>
-                <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 400 }}>Staff ID</th>
-                <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 400 }}>Name</th>
-                <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 400 }}>Role</th>
-                <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 400 }}>Username</th>
-                <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 400 }}>Action</th>
+                <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', color: 'var(--text)', fontWeight: 400 }}>Staff ID</th>
+                <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', color: 'var(--text)', fontWeight: 400 }}>Name</th>
+                <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', color: 'var(--text)', fontWeight: 400 }}>Role</th>
+                <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', color: 'var(--text)', fontWeight: 400 }}>Username</th>
+                <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', color: 'var(--text)', fontWeight: 400 }}>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -204,12 +205,12 @@ export default function Staff() {
               )}
               {!staffLoading && list.map((s) => (
                 <tr key={s.id} style={{ borderBottom: '1px solid var(--line)' }}>
-                  <td className="kp-mono" style={{ padding: '10px 12px', color: 'var(--text-muted)', fontSize: 12 }}>
+                  <td className="kp-mono" style={{ padding: '10px 12px', fontSize: 12 }}>
                     {s.id ? `#${String(s.id).padStart(4, '0')}` : '—'}
                   </td>
                   <td style={{ padding: '10px 12px', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name || '—'}</td>
-                  <td style={{ padding: '10px 12px', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.role || '—'}</td>
-                  <td className="kp-mono" style={{ padding: '10px 12px', color: 'var(--text-muted)', fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.username || '—'}</td>
+                  <td style={{ padding: '10px 12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.role || '—'}</td>
+                  <td className="kp-mono" style={{ padding: '10px 12px', fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.username || '—'}</td>
                   <td style={{ padding: '10px 12px' }}>
                     <div style={{ display: 'inline-flex', gap: 6 }}>
                       <button className="kp-btn kp-btn-ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => {
@@ -247,7 +248,7 @@ export default function Staff() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
               <div>
                 <div className="kp-eyebrow" style={{ fontSize: 10 }}>Add staff</div>
-                <div style={{ fontSize: 14, marginTop: 8, color: 'var(--text-muted)' }}>Create a new staff account</div>
+                <div style={{ fontSize: 14, marginTop: 8 }}>Create a new staff account</div>
               </div>
               <button className="kp-btn kp-btn-ghost" onClick={() => setShowAdd(false)}>Close</button>
             </div>
@@ -255,7 +256,7 @@ export default function Staff() {
             <form onSubmit={(e) => { e.preventDefault(); handleAdd(); }} style={{ display: 'grid', gap: 10, marginTop: 12 }}>
               <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" style={{ padding: 10, borderRadius: 8, border: '1px solid var(--line-strong)', background: 'var(--surface)', color: 'var(--text)' }} />
               <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="email@example.com" style={{ padding: 10, borderRadius: 8, border: '1px solid var(--line-strong)', background: 'var(--surface)', color: 'var(--text)' }} />
-              <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 8 characters" type="password" style={{ padding: 10, borderRadius: 8, border: '1px solid var(--line-strong)', background: 'var(--surface)', color: 'var(--text)' }} />
+              <PasswordInput value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 8 characters" style={{ padding: 10, borderRadius: 8, border: '1px solid var(--line-strong)', background: 'var(--surface)', color: 'var(--text)', width: '100%', boxSizing: 'border-box' }} />
               <select value={role ?? ''} onChange={(e) => setRole(e.target.value)} style={{ padding: 10, borderRadius: 8, border: '1px solid var(--line-strong)', background: 'var(--surface)', color: 'var(--text)' }}>
                 {posLoading && <option value="">Loading…</option>}
                 {!posLoading && positions && positions.length > 0 && positions.map((p) => (
@@ -276,7 +277,6 @@ export default function Staff() {
                 {editingId && <button type="button" className="kp-btn kp-btn-ghost" onClick={() => { setEditingId(null); setName(''); setUsername(''); setPassword(''); setShowAdd(false); }}>Cancel</button>}
                 {!canAdd && <div style={{ color: 'var(--text-muted)', alignSelf: 'center' }}>Only admin/owner can create staff</div>}
               </div>
-              {error && <div style={{ color: 'var(--danger)', marginTop: 8 }}>{error}</div>}
             </form>
           </div>
         </div>

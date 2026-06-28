@@ -138,20 +138,6 @@ export default function StaffLayout({ children }) {
           </div>
 
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 8,
-              background: 'var(--surface)', border: '1px solid var(--line)', width: 260,
-            }}>
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <circle cx="6" cy="6" r="4" stroke="var(--text-muted)" strokeWidth="1.4" />
-                <path d="M9 9l3 3" stroke="var(--text-muted)" strokeWidth="1.4" strokeLinecap="round" />
-              </svg>
-              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search here..." style={{
-                flex: 1, border: 'none', outline: 'none', background: 'transparent', color: 'var(--text-muted)', fontSize: 13,
-              }} />
-              <span className="kp-mono" style={{ fontSize: 10, color: 'var(--text-dim)', border: '1px solid var(--line-strong)', padding: '1px 5px', borderRadius: 4 }}>⌘K</span>
-            </div>
-
             <div
               onClick={() => nav('/staff/profile')}
               style={{

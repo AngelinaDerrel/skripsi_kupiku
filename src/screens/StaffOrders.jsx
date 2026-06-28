@@ -6,12 +6,12 @@ const TABS = [
   { key: 'new',     label: 'New',        status: 'menunggu_pembayaran', accent: '#C5895A', bg: 'rgba(197,137,90,0.12)'  },
   { key: 'process', label: 'On Process', status: 'diproses',            accent: '#6B8FA8', bg: 'rgba(107,143,168,0.12)' },
   { key: 'ready',   label: 'Ready',      status: 'siap',                accent: '#7A8F6A', bg: 'rgba(122,143,106,0.12)' },
-  { key: 'done',    label: 'Done',       status: 'done',                accent: '#666',    bg: 'rgba(255,255,255,0.04)' },
+  { key: 'done',    label: 'Done',       status: 'done',                accent: '#888',    bg: 'rgba(255,255,255,0.04)' },
 ];
 
-const SUHU  = { ice: 'Ice', hot: 'Hot' };
-const GULA  = { less_sugar: 'Less Sugar', normal: 'Normal', extra_sugar: 'Extra Sugar' };
-const ES    = { less_ice: 'Less Ice',  normal: 'Normal',  extra_ice: 'Extra Ice' };
+const SUHU = { ice: 'Ice', hot: 'Hot' };
+const GULA = { less_sugar: 'Less Sugar', normal: 'Normal', extra_sugar: 'Extra Sugar' };
+const ES   = { less_ice: 'Less Ice', normal: 'Normal', extra_ice: 'Extra Ice' };
 
 function fmtTime(ts) {
   if (!ts) return '—';
@@ -63,21 +63,17 @@ function OrderDetailDrawer({ order, tabKey, busy, onAction, onClose }) {
       tabKey === 'new'     ? 'diproses' :
       tabKey === 'process' ? 'siap' :
       tabKey === 'ready'   ? 'done' : null;
-    if (next) {
-      onAction(order.kode_pesanan, next);
-      onClose();
-    }
+    if (next) { onAction(order.kode_pesanan, next); onClose(); }
   }
 
-  function handlePrintAndConfirm() {
-    printNota(order);
+  async function handlePrintAndConfirm() {
     if (tabKey === 'new') {
-      onAction(order.kode_pesanan, 'diproses');
+      await onAction(order.kode_pesanan, 'diproses');
       onClose();
     }
+    await printNota(order);
   }
 
-  // Close on Escape
   useEffect(() => {
     function onKey(e) { if (e.key === 'Escape') onClose(); }
     window.addEventListener('keydown', onKey);
@@ -86,42 +82,25 @@ function OrderDetailDrawer({ order, tabKey, busy, onAction, onClose }) {
 
   const custRow = (label, val) => (
     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--line)' }}>
-      <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{label}</span>
+      <span style={{ fontSize: 12 }}>{label}</span>
       <span style={{ fontSize: 12, fontWeight: 500 }}>{val}</span>
     </div>
   );
 
   return (
     <>
-      {/* Backdrop */}
-      <div
-        onClick={onClose}
-        style={{
-          position: 'fixed', inset: 0,
-          background: 'rgba(0,0,0,0.55)',
-          zIndex: 1000,
-          backdropFilter: 'blur(2px)',
-        }}
-      />
-
-      {/* Modal */}
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 1000, backdropFilter: 'blur(2px)' }} />
       <div style={{
-        position: 'fixed', top: '50%', left: '50%',
-        transform: 'translate(-50%, -50%)',
+        position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
         width: '90%', maxWidth: 520, maxHeight: '88vh',
-        background: 'var(--bg)',
-        border: '1px solid var(--line)',
-        borderRadius: 16,
-        zIndex: 1001,
+        background: 'var(--bg)', border: '1px solid var(--line)',
+        borderRadius: 16, zIndex: 1001,
         display: 'flex', flexDirection: 'column',
         boxShadow: '0 24px 64px rgba(0,0,0,0.55)',
       }}>
-
         {/* Header */}
         <div style={{
-          padding: '20px 24px',
-          borderBottom: '1px solid var(--line)',
-          background: tab.bg,
+          padding: '20px 24px', borderBottom: '1px solid var(--line)', background: tab.bg,
           display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
         }}>
           <div>
@@ -132,85 +111,58 @@ function OrderDetailDrawer({ order, tabKey, busy, onAction, onClose }) {
               <span style={{
                 fontSize: 9, padding: '2px 8px', borderRadius: 999,
                 background: tab.bg, border: `1px solid ${tab.accent}66`,
-                color: tab.accent, textTransform: 'uppercase', letterSpacing: '0.06em',
-                fontFamily: 'var(--font-mono)',
+                color: tab.accent, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)',
               }}>
-                {TABS.find(t => t.key === tabKey)?.label}
+                {tab?.label}
               </span>
             </div>
-            <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-              {order.user?.name || 'Pelanggan'}
-            </div>
-            <div className="kp-mono" style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 3 }}>
+            <div style={{ fontSize: 13 }}>{order.user?.name || 'Pelanggan'}</div>
+            <div className="kp-mono" style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>
               {fmtDate(order.created_at)} · {fmtTime(order.created_at)}
             </div>
           </div>
-          <button
-            onClick={onClose}
-            style={{
-              width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
-              background: 'var(--surface)', border: '1px solid var(--line)',
-              color: 'var(--text-muted)', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 18, fontFamily: 'var(--font-sans)', lineHeight: 1,
-            }}
-          >
-            ×
-          </button>
+          <button onClick={onClose} style={{
+            width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+            background: 'var(--surface)', border: '1px solid var(--line)',
+            color: 'var(--text)', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 18, lineHeight: 1,
+          }}>×</button>
         </div>
 
         {/* Items list */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
-          <div style={{
-            fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase',
-            letterSpacing: '0.08em', marginBottom: 14, fontFamily: 'var(--font-mono)',
-          }}>
+          <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14, fontFamily: 'var(--font-mono)' }}>
             Detail Item — {order.items?.length || 0} produk
           </div>
-
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {(order.items || []).map((item, i) => {
-              const suhuLabel  = SUHU[item.suhu]  || item.suhu  || '—';
-              const gulaLabel  = GULA[item.tingkat_gula]  || item.tingkat_gula  || '—';
-              const esLabel    = item.suhu === 'ice' ? (ES[item.tingkat_es] || item.tingkat_es || '—') : null;
-
+              const suhuLabel = SUHU[item.suhu] || item.suhu || '—';
+              const gulaLabel = GULA[item.tingkat_gula] || item.tingkat_gula || '—';
+              const esLabel   = item.suhu === 'ice' ? (ES[item.tingkat_es] || item.tingkat_es || '—') : null;
               return (
-                <div key={i} style={{
-                  borderRadius: 10, overflow: 'hidden',
-                  border: '1px solid var(--line)',
-                  background: 'var(--surface)',
-                }}>
-                  {/* Item header stripe */}
+                <div key={i} style={{ borderRadius: 10, overflow: 'hidden', border: '1px solid var(--line)', background: 'var(--surface)' }}>
                   <div style={{
-                    padding: '12px 16px',
-                    background: tab.bg,
-                    borderBottom: '1px solid var(--line)',
+                    padding: '12px 16px', background: tab.bg, borderBottom: '1px solid var(--line)',
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span style={{
-                        width: 22, height: 22, borderRadius: '50%',
-                        background: tab.accent, color: '#fff',
+                        width: 22, height: 22, borderRadius: '50%', background: tab.accent, color: '#fff',
                         fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-mono)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                       }}>{i + 1}</span>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
-                        {item.nama_menu}
-                      </span>
+                      <span style={{ fontSize: 14, fontWeight: 600 }}>{item.nama_menu}</span>
                     </div>
                     <span className="kp-mono" style={{ fontSize: 13, color: tab.accent, fontWeight: 700 }}>
                       {fmtRp(item.harga_saat_pesan)}
                     </span>
                   </div>
-
-                  {/* Kustomisasi rows */}
                   <div style={{ padding: '10px 16px' }}>
                     {custRow('Suhu', suhuLabel)}
                     {custRow('Tingkat Gula', gulaLabel)}
                     {esLabel && custRow('Tingkat Es', esLabel)}
                   </div>
-
-                  {/* Chip row */}
                   <div style={{ padding: '8px 16px 12px', display: 'flex', gap: 5, flexWrap: 'wrap' }}>
                     <Chip label={suhuLabel} accent={tab.accent} bg={tab.bg} />
                     <Chip label={gulaLabel} accent={tab.accent} bg={tab.bg} />
@@ -223,27 +175,16 @@ function OrderDetailDrawer({ order, tabKey, busy, onAction, onClose }) {
         </div>
 
         {/* Footer */}
-        <div style={{
-          padding: '16px 24px', borderTop: '1px solid var(--line)',
-          background: 'var(--surface)',
-        }}>
-          {/* Total row */}
+        <div style={{ padding: '16px 24px', borderTop: '1px solid var(--line)', background: 'var(--surface)' }}>
           <div style={{
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             marginBottom: 14, padding: '10px 14px',
             background: 'var(--bg)', borderRadius: 8, border: '1px solid var(--line)',
           }}>
-            <span style={{ fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)' }}>
-              Total
-            </span>
-            <span className="kp-mono" style={{ fontSize: 20, fontWeight: 700 }}>
-              {fmtRp(order.total_harga)}
-            </span>
+            <span style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)' }}>Total</span>
+            <span className="kp-mono" style={{ fontSize: 20, fontWeight: 700 }}>{fmtRp(order.total_harga)}</span>
           </div>
-
-          {/* Action buttons */}
           <div style={{ display: 'flex', gap: 8 }}>
-            {/* Cetak Nota */}
             <button
               onClick={tabKey === 'new' ? handlePrintAndConfirm : () => printNota(order)}
               style={{
@@ -261,8 +202,6 @@ function OrderDetailDrawer({ order, tabKey, busy, onAction, onClose }) {
               </svg>
               {tabKey === 'new' ? 'Konfirmasi & Nota' : 'Cetak Nota'}
             </button>
-
-            {/* Status action */}
             {actionLabel && tabKey !== 'new' && (
               <button
                 onClick={handleAction}
@@ -271,8 +210,7 @@ function OrderDetailDrawer({ order, tabKey, busy, onAction, onClose }) {
                   flex: 1, padding: '11px 0', borderRadius: 8,
                   background: tab.accent, border: 'none',
                   color: '#fff', fontSize: 13, fontWeight: 500,
-                  cursor: busy ? 'wait' : 'pointer',
-                  opacity: busy ? 0.55 : 1,
+                  cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.55 : 1,
                   fontFamily: 'var(--font-sans)',
                 }}
               >
@@ -286,16 +224,24 @@ function OrderDetailDrawer({ order, tabKey, busy, onAction, onClose }) {
   );
 }
 
-// ── Order Card ─────────────────────────────────────────────────────────────────
+// ── Order Row (list item) ──────────────────────────────────────────────────────
 
-function OrderCard({ order, tabKey, busy, onAction, onDetail }) {
-  const tab = TABS.find(t => t.key === tabKey);
+function OrderRow({ order, tabKey, busy, onAction, onDetail }) {
+  const tab    = TABS.find(t => t.key === tabKey);
+  const isNew  = tabKey === 'new';
+  const itemsSummary = (order.items || []).map(i => i.nama_menu).join(', ');
+  const itemCount    = order.items?.length || 0;
 
-  function handleActionClick(e) {
+  const btnLabel =
+    tabKey === 'new'     ? 'Konfirmasi' :
+    tabKey === 'process' ? 'Tandai Siap' :
+    tabKey === 'ready'   ? 'Sudah Diambil' : null;
+
+  async function handleActionClick(e) {
     e.stopPropagation();
     if (tabKey === 'new') {
-      onAction(order.kode_pesanan, 'diproses');
-      printNota(order);
+      await onAction(order.kode_pesanan, 'diproses');
+      await printNota(order);
     } else if (tabKey === 'process') {
       onAction(order.kode_pesanan, 'siap');
     } else if (tabKey === 'ready') {
@@ -303,109 +249,86 @@ function OrderCard({ order, tabKey, busy, onAction, onDetail }) {
     }
   }
 
-  const btnLabel =
-    tabKey === 'new'     ? 'Konfirmasi & Cetak Nota' :
-    tabKey === 'process' ? 'Tandai Siap' :
-    tabKey === 'ready'   ? 'Sudah Diambil' : null;
+  const bgIdle  = isNew ? 'rgba(197,137,90,0.13)' : 'transparent';
+  const bgHover = isNew ? 'rgba(197,137,90,0.22)' : 'rgba(255,255,255,0.03)';
 
   return (
     <div
-      className="kp-card"
       onClick={() => onDetail(order)}
-      style={{ padding: 0, overflow: 'hidden', cursor: 'pointer', transition: 'transform 120ms ease, box-shadow 120ms ease' }}
-      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = `0 6px 24px rgba(0,0,0,0.25), 0 0 0 1px ${tab.accent}44`; }}
-      onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '4px 210px 1fr 110px 140px 170px',
+        alignItems: 'center',
+        cursor: 'pointer',
+        borderBottom: '1px solid var(--line)',
+        background: bgIdle,
+        transition: 'background 120ms ease',
+      }}
+      onMouseEnter={e => { e.currentTarget.style.background = bgHover; }}
+      onMouseLeave={e => { e.currentTarget.style.background = bgIdle; }}
     >
-      {/* colour stripe */}
-      <div style={{ height: 3, background: tab.accent }} />
+      {/* Status bar */}
+      <div style={{ background: tab.accent, alignSelf: 'stretch', minHeight: 62 }} />
 
-      <div style={{ padding: '16px 18px' }}>
-        {/* header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
-          <div>
-            <div className="kp-mono" style={{ fontSize: 15, fontWeight: 700, color: tab.accent, letterSpacing: '0.1em' }}>
-              {order.kode_pesanan}
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 3 }}>
-              {order.user?.name || 'Pelanggan'}
-            </div>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <div className="kp-mono" style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-              {fmtTime(order.created_at)}
-            </div>
-            <div className="kp-mono" style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 2 }}>
-              {fmtDate(order.created_at)}
-            </div>
-          </div>
-        </div>
-
-        <div style={{ height: 1, background: 'var(--line)', marginBottom: 14 }} />
-
-        {/* items summary */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
-          {(order.items || []).map((item, i) => {
-            const tags = [
-              SUHU[item.suhu],
-              GULA[item.tingkat_gula],
-              item.suhu === 'ice' ? ES[item.tingkat_es] : null,
-            ].filter(Boolean);
-
-            return (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 5 }}>{item.nama_menu}</div>
-                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                    {tags.map(tag => <Chip key={tag} label={tag} accent={tab.accent} bg={tab.bg} />)}
-                  </div>
-                </div>
-                <span className="kp-mono" style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0, paddingTop: 2 }}>
-                  {Number(item.harga_saat_pesan).toLocaleString('id-ID')}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-
-        <div style={{ height: 1, background: 'var(--line)', marginBottom: 14 }} />
-
-        {/* footer */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <div className="kp-mono" style={{ fontSize: 9, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-              Total
-            </div>
-            <div className="kp-mono" style={{ fontSize: 17, fontWeight: 700, marginTop: 2 }}>
-              {fmtRp(order.total_harga)}
-            </div>
-          </div>
-
-          {btnLabel ? (
-            <button
-              onClick={handleActionClick}
-              disabled={busy}
-              style={{
-                padding: '9px 16px', borderRadius: 999,
-                background: tab.accent, border: 'none', color: '#fff',
-                fontSize: 12, fontWeight: 500, fontFamily: 'var(--font-sans)',
-                cursor: busy ? 'wait' : 'pointer',
-                opacity: busy ? 0.55 : 1,
-                transition: 'opacity 150ms ease',
-              }}
-            >
-              {busy ? '...' : btnLabel}
-            </button>
-          ) : (
-            <span className="kp-mono" style={{ fontSize: 10, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-              Selesai
-            </span>
+      {/* Order code + customer */}
+      <div style={{ padding: '14px 18px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4 }}>
+          {isNew && (
+            <span style={{
+              width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+              background: tab.accent,
+              boxShadow: `0 0 7px ${tab.accent}, 0 0 14px ${tab.accent}66`,
+            }} />
           )}
+          <span className="kp-mono" style={{ fontSize: 13, fontWeight: 700, color: tab.accent, letterSpacing: '0.08em' }}>
+            {order.kode_pesanan}
+          </span>
         </div>
+        <div style={{ fontSize: 12 }}>{order.user?.name || 'Pelanggan'}</div>
+      </div>
 
-        {/* hint */}
-        <div style={{ marginTop: 10, fontSize: 10, color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', textAlign: 'center' }}>
-          Klik kartu untuk lihat detail
+      {/* Items summary */}
+      <div style={{ padding: '14px 12px', minWidth: 0 }}>
+        <div style={{ fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {itemsSummary || '—'}
         </div>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>
+          {itemCount} item
+        </div>
+      </div>
+
+      {/* Jam + Tanggal */}
+      <div style={{ padding: '14px 12px', textAlign: 'right' }}>
+        <div className="kp-mono" style={{ fontSize: 13 }}>{fmtTime(order.created_at)}</div>
+        <div className="kp-mono" style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>{fmtDate(order.created_at)}</div>
+      </div>
+
+      {/* Total */}
+      <div style={{ padding: '14px 12px', textAlign: 'right' }}>
+        <div className="kp-mono" style={{ fontSize: 14, fontWeight: 700 }}>{fmtRp(order.total_harga)}</div>
+      </div>
+
+      {/* Action */}
+      <div style={{ padding: '12px 16px' }} onClick={e => e.stopPropagation()}>
+        {btnLabel ? (
+          <button
+            onClick={handleActionClick}
+            disabled={busy}
+            style={{
+              width: '100%', padding: '8px 12px', borderRadius: 8,
+              background: tab.accent, border: 'none', color: '#fff',
+              fontSize: 12, fontWeight: 600, cursor: busy ? 'wait' : 'pointer',
+              opacity: busy ? 0.55 : 1, fontFamily: 'var(--font-sans)',
+              boxShadow: isNew ? `0 0 12px ${tab.accent}66` : 'none',
+            }}
+          >
+            {busy ? '...' : btnLabel}
+          </button>
+        ) : (
+          <span className="kp-mono" style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            Selesai
+          </span>
+        )}
       </div>
     </div>
   );
@@ -414,12 +337,12 @@ function OrderCard({ order, tabKey, busy, onAction, onDetail }) {
 // ── Main Screen ────────────────────────────────────────────────────────────────
 
 export default function StaffOrders() {
-  const [activeTab, setActiveTab]   = useState('new');
-  const [orders, setOrders]         = useState([]);
-  const [loading, setLoading]       = useState(true);
-  const [error, setError]           = useState(null);
-  const [busy, setBusy]             = useState(null);
-  const [lastUpdated, setLastUpdated] = useState(null);
+  const [activeTab, setActiveTab]       = useState('new');
+  const [orders, setOrders]             = useState([]);
+  const [loading, setLoading]           = useState(true);
+  const [error, setError]               = useState(null);
+  const [busy, setBusy]                 = useState(null);
+  const [lastUpdated, setLastUpdated]   = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const timerRef = useRef(null);
 
@@ -460,11 +383,17 @@ export default function StaffOrders() {
     }
   }
 
+  const todayStr = new Date().toDateString();
+  const isToday  = o => !o.created_at || new Date(o.created_at).toDateString() === todayStr;
+
   const counts = {};
-  TABS.forEach(t => { counts[t.key] = orders.filter(o => o.status === t.status).length; });
+  TABS.forEach(t => { counts[t.key] = orders.filter(o => o.status === t.status && isToday(o)).length; });
 
   const tab      = TABS.find(t => t.key === activeTab);
-  const filtered = orders.filter(o => o.status === tab.status);
+  const filtered = orders.filter(o => o.status === tab.status && isToday(o));
+
+  // Oldest first (ascending), newest at bottom
+  const sorted = [...filtered].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
   return (
     <StaffLayout>
@@ -490,7 +419,7 @@ export default function StaffOrders() {
               {loading ? 'Memuat…' : '↻ Refresh'}
             </button>
             {lastUpdated && (
-              <div className="kp-mono" style={{ fontSize: 10, color: 'var(--text-dim)' }}>
+              <div className="kp-mono" style={{ fontSize: 10, color: 'var(--text-muted)' }}>
                 Updated {lastUpdated.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
                 {' · '}auto 15s
               </div>
@@ -512,7 +441,7 @@ export default function StaffOrders() {
                 transition: 'all 150ms ease',
               }}
             >
-              <div className="kp-mono" style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>
+              <div className="kp-mono" style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>
                 {t.label}
               </div>
               <div className="kp-display" style={{ fontSize: 38, lineHeight: 1, color: counts[t.key] > 0 ? t.accent : 'var(--text-dim)' }}>
@@ -523,7 +452,7 @@ export default function StaffOrders() {
         </div>
 
         {/* ── Tab bar ── */}
-        <div style={{ display: 'flex', borderBottom: '1px solid var(--line)', marginBottom: 24 }}>
+        <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.14)', marginBottom: 0 }}>
           {TABS.map(t => {
             const active = activeTab === t.key;
             return (
@@ -535,15 +464,15 @@ export default function StaffOrders() {
                   padding: '10px 20px',
                   background: 'transparent', border: 'none',
                   borderBottom: `2px solid ${active ? t.accent : 'transparent'}`,
-                  color: active ? 'var(--text)' : 'var(--text-muted)',
-                  fontSize: 13, fontWeight: active ? 500 : 400,
+                  color: 'var(--text)',
+                  fontSize: 13, fontWeight: active ? 600 : 400,
                   cursor: 'pointer', fontFamily: 'var(--font-sans)',
                   marginBottom: -1, transition: 'all 140ms ease',
                 }}
               >
                 {t.label}
                 <span style={{
-                  minWidth: 20, height: 20, borderRadius: 999,
+                  minWidth: 20, height: 20, borderRadius: 999, padding: '0 5px',
                   background: active ? t.accent : 'var(--surface-3)', color: '#fff',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700,
@@ -553,32 +482,56 @@ export default function StaffOrders() {
               </button>
             );
           })}
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', paddingRight: 4 }}>
+            <span className="kp-mono" style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+              Menampilkan pesanan hari ini
+            </span>
+          </div>
         </div>
 
         {/* ── Error ── */}
         {error && (
           <div style={{
-            padding: '12px 16px', marginBottom: 20, borderRadius: 8, fontSize: 13,
+            padding: '12px 16px', marginBottom: 20, marginTop: 20, borderRadius: 8, fontSize: 13,
             background: 'rgba(224,90,90,0.1)', border: '1px solid rgba(224,90,90,0.3)', color: '#e05a5a',
           }}>
             {error}
           </div>
         )}
 
-        {/* ── Content ── */}
-        {loading && orders.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '80px 0', color: 'var(--text-muted)', fontSize: 13 }}>
-            Memuat pesanan…
+        {/* ── List ── */}
+        <div className="kp-card" style={{ overflow: 'hidden', marginTop: 20 }}>
+          {/* List header */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '4px 210px 1fr 110px 140px 170px',
+            borderBottom: '1px solid var(--line)',
+            background: 'rgba(255,255,255,0.025)',
+            fontSize: 11, fontFamily: 'var(--font-mono)',
+            textTransform: 'uppercase', letterSpacing: '0.08em',
+          }}>
+            <div />
+            <div style={{ padding: '12px 18px' }}>Kode / Customer</div>
+            <div style={{ padding: '12px 12px' }}>Item</div>
+            <div style={{ padding: '12px 12px', textAlign: 'right' }}>Jam</div>
+            <div style={{ padding: '12px 12px', textAlign: 'right' }}>Total</div>
+            <div style={{ padding: '12px 16px' }}>Aksi</div>
           </div>
-        ) : filtered.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '80px 0', color: 'var(--text-muted)' }}>
-            <div style={{ fontSize: 32, marginBottom: 14, opacity: 0.25 }}>☕</div>
-            <div style={{ fontSize: 13 }}>Tidak ada pesanan {tab.label.toLowerCase()}</div>
-          </div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
-            {filtered.map(order => (
-              <OrderCard
+
+          {loading && orders.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)', fontSize: 13 }}>
+              Memuat pesanan…
+            </div>
+          ) : sorted.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '60px 0' }}>
+              <div style={{ fontSize: 28, marginBottom: 12, opacity: 0.2 }}>☕</div>
+              <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                Tidak ada pesanan {tab.label.toLowerCase()} hari ini
+              </div>
+            </div>
+          ) : (
+            sorted.map(order => (
+              <OrderRow
                 key={order.kode_pesanan}
                 order={order}
                 tabKey={activeTab}
@@ -586,12 +539,12 @@ export default function StaffOrders() {
                 onAction={handleAction}
                 onDetail={setSelectedOrder}
               />
-            ))}
-          </div>
-        )}
+            ))
+          )}
+        </div>
+
       </div>
 
-      {/* ── Detail Drawer ── */}
       {selectedOrder && (
         <OrderDetailDrawer
           order={selectedOrder}

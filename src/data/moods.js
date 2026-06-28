@@ -6,6 +6,7 @@ export const MOODS = [
     pair: 'Citrus Cold Brew',
     intensity: 0.7,
     shape: 'sun',
+    emoji: '😊',
   },
   {
     id: 'sad',
@@ -14,6 +15,7 @@ export const MOODS = [
     pair: 'Honey Oat Latte',
     intensity: 0.4,
     shape: 'moon',
+    emoji: '😢',
   },
   {
     id: 'calm',
@@ -22,6 +24,7 @@ export const MOODS = [
     pair: 'Cedar Pour-Over',
     intensity: 0.5,
     shape: 'circle',
+    emoji: '😌',
   },
   {
     id: 'stressed',
@@ -30,6 +33,7 @@ export const MOODS = [
     pair: 'Double Ristretto',
     intensity: 0.95,
     shape: 'square',
+    emoji: '😰',
   },
   {
     id: 'neutral',
@@ -38,6 +42,7 @@ export const MOODS = [
     pair: 'Classic Flat White',
     intensity: 0.55,
     shape: 'line',
+    emoji: '😐',
   },
   {
     id: 'angry',
@@ -46,5 +51,6 @@ export const MOODS = [
     pair: 'Smoked Espresso',
     intensity: 0.85,
     shape: 'triangle',
+    emoji: '😠',
   },
 ];

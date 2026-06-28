@@ -4,6 +4,7 @@ import StaffLayout from './StaffLayout.jsx';
 import AdminLayout from '../components/AdminLayout.jsx';
 import { STOCK_ITEMS } from '../data/stockItems.js';
 import api from '../lib/api.js';
+import { useToast } from '../components/Toast.jsx';
 
 function formatNumber(n) {
   if (n == null || n === '') return '';
@@ -33,6 +34,7 @@ async function downloadBlob(url, filename, token) {
 
 export default function Stock({ layout = 'staff' }) {
   const isAdmin = layout === 'admin';
+  const toast = useToast();
   const [rows, setRows] = useState(() => STOCK_ITEMS.map((s) => ({ ...s, utuh: '', sisa: '' })));
   const Layout = isAdmin ? AdminLayout : StaffLayout;
   const headerLabel = isAdmin ? 'Workspace · Stock' : 'Staff · Stock';
@@ -71,6 +73,7 @@ export default function Stock({ layout = 'staff' }) {
   const [pegawaiMap, setPegawaiMap] = useState({});
 
   // Staff — opname form
+  const [opnameSearch, setOpnameSearch] = useState('');
   const [opnameLoading, setOpnameLoading] = useState(false);
   const [opnameError, setOpnameError] = useState('');
   const [isSaveConfirmOpen, setIsSaveConfirmOpen] = useState(false);
@@ -230,6 +233,12 @@ export default function Stock({ layout = 'staff' }) {
     return { ...r, utuh, sisa, total };
   }), [rows]);
 
+  const filteredComputed = useMemo(() => {
+    const q = opnameSearch.trim().toLowerCase();
+    if (!q) return computed;
+    return computed.filter((r) => r.name.toLowerCase().includes(q));
+  }, [computed, opnameSearch]);
+
   // Staff: download PDF for a saved opname
   async function downloadPdf() {
     if (downloadLoading) return;
@@ -378,10 +387,11 @@ export default function Stock({ layout = 'staff' }) {
     try {
       await api.del(`bahanbaku/${deleteTarget.id}`);
       setBahanList((current) => current.filter((item) => String(item.id) !== String(deleteTarget.id)));
-      setSuccessToast({ visible: true, message: 'Berhasil delete bahan baku.' });
       closeDeleteModal();
+      setSuccessToast({ visible: true, message: 'Berhasil menghapus bahan baku.' });
     } catch (err) {
-      setBahanError(err?.message || 'Gagal menghapus bahan baku.');
+      closeDeleteModal();
+      toast(err?.message || 'Gagal menghapus bahan baku.', 'error');
     }
   }
 
@@ -431,7 +441,7 @@ export default function Stock({ layout = 'staff' }) {
 
           <div style={{ flex: 1, padding: '24px 32px', overflow: 'auto' }}>
           {/* Tab switcher */}
-          <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--line)', marginBottom: 18 }}>
+          <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid rgba(255,255,255,0.14)', marginBottom: 18 }}>
             {[['bahan', 'Bahan Baku'], ['riwayat', 'Riwayat Stok Masuk']].map(([key, label]) => (
               <button
                 key={key}
@@ -439,12 +449,12 @@ export default function Stock({ layout = 'staff' }) {
                 style={{
                   padding: '10px 18px',
                   border: 'none',
-                  borderBottom: activeAdminTab === key ? '2px solid #6B4F3A' : '2px solid transparent',
+                  borderBottom: activeAdminTab === key ? '2px solid #A8835F' : '2px solid transparent',
                   background: 'none',
                   cursor: 'pointer',
                   fontSize: 13,
                   fontWeight: activeAdminTab === key ? 600 : 400,
-                  color: activeAdminTab === key ? 'var(--text)' : 'var(--text-muted)',
+                  color: 'var(--text)',
                   marginBottom: -1,
                   transition: 'color 120ms',
                 }}
@@ -464,7 +474,7 @@ export default function Stock({ layout = 'staff' }) {
                   padding: '14px 18px', borderBottom: '1px solid var(--line)',
                   fontSize: 11, fontFamily: 'var(--font-mono)',
                   textTransform: 'uppercase', letterSpacing: '0.08em',
-                  color: 'var(--text-muted)', background: 'rgba(255,255,255,0.015)',
+                  color: 'var(--text)', background: 'rgba(255,255,255,0.025)',
                 }}>
                   <span>ID</span><span>Nama bahan</span><span>Jumlah</span><span>Satuan</span><span>Action</span>
                 </div>
@@ -489,12 +499,12 @@ export default function Stock({ layout = 'staff' }) {
                     borderBottom: i < bahanList.length - 1 ? '1px solid var(--line)' : 'none',
                     fontSize: 13, alignItems: 'center',
                   }}>
-                    <span className="kp-mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{item.id}</span>
+                    <span className="kp-mono" style={{ fontSize: 11 }}>{item.id}</span>
                     <span style={{ fontWeight: 500 }}>{item.name}</span>
-                    <span style={{ fontWeight: 600, color: item.stok_saat_ini != null ? 'var(--text)' : 'var(--text-muted)' }}>
+                    <span style={{ fontWeight: 600 }}>
                       {item.stok_saat_ini != null ? Number(item.stok_saat_ini).toLocaleString('id-ID') : '—'}
                     </span>
-                    <span style={{ color: 'var(--text-muted)' }}>{item.unit || '-'}</span>
+                    <span>{item.unit || '-'}</span>
                     <span>
                       <div style={{ display: 'inline-flex', gap: 6 }}>
                         <button className="kp-btn kp-btn-ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => openEditModal(item)}>Update</button>
@@ -552,7 +562,7 @@ export default function Stock({ layout = 'staff' }) {
                     padding: '12px 18px', borderBottom: '1px solid var(--line)',
                     fontSize: 11, fontFamily: 'var(--font-mono)',
                     textTransform: 'uppercase', letterSpacing: '0.08em',
-                    color: 'var(--text-muted)', background: 'rgba(255,255,255,0.015)',
+                    color: 'var(--text)', background: 'rgba(255,255,255,0.025)',
                   }}>
                     <span>Tanggal &amp; Jam</span>
                     <span>Bahan</span>
@@ -596,7 +606,7 @@ export default function Stock({ layout = 'staff' }) {
                         fontSize: 13,
                       }}>
                         <div>
-                          <div className="kp-mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{tglLabel}</div>
+                          <div className="kp-mono" style={{ fontSize: 11 }}>{tglLabel}</div>
                           {jamLabel && <div className="kp-mono" style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>{jamLabel}</div>}
                         </div>
                         <span style={{ fontWeight: 500 }}>{namaBahan}</span>
@@ -604,7 +614,7 @@ export default function Stock({ layout = 'staff' }) {
                           {Number(item.jumlah).toLocaleString('id-ID')}
                           {satuan && <span style={{ fontWeight: 400, color: 'var(--text-muted)', marginLeft: 4, fontSize: 11 }}>{satuan}</span>}
                         </span>
-                        <span style={{ color: 'var(--text-muted)' }}>{namaPegawai}</span>
+                        <span>{namaPegawai}</span>
                       </div>
                     );
                   })}
@@ -658,8 +668,8 @@ export default function Stock({ layout = 'staff' }) {
                 </div>
                 <button className="kp-btn kp-btn-ghost" onClick={closeDeleteModal}>Tutup</button>
               </div>
-              <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>
-                Bahan <span style={{ color: 'var(--text)', fontWeight: 500 }}>{deleteTarget?.name || '-'}</span> akan dihapus.
+              <div style={{ fontSize: 13 }}>
+                Bahan <span style={{ fontWeight: 500 }}>{deleteTarget?.name || '-'}</span> akan dihapus.
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 18 }}>
                 <button className="kp-btn kp-btn-ghost" onClick={closeDeleteModal}>Batal</button>
@@ -693,7 +703,26 @@ export default function Stock({ layout = 'staff' }) {
             <h1 style={{ fontSize: 20, margin: '4px 0 0' }}>Stock opname</h1>
           </div>
 
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '8px 12px', borderRadius: 8,
+              background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.14)', width: 220,
+            }}>
+              <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+                <circle cx="6" cy="6" r="4" stroke="var(--text-muted)" strokeWidth="1.4" />
+                <path d="M9 9l3 3" stroke="var(--text-muted)" strokeWidth="1.4" strokeLinecap="round" />
+              </svg>
+              <input
+                value={opnameSearch}
+                onChange={e => setOpnameSearch(e.target.value)}
+                placeholder="Cari bahan baku..."
+                style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: 13, color: 'var(--text)', fontFamily: 'var(--font-sans)' }}
+              />
+              {opnameSearch && (
+                <button onClick={() => setOpnameSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 16, padding: 0, lineHeight: 1 }}>×</button>
+              )}
+            </div>
             <button className="kp-btn kp-btn-ghost" onClick={() => { setRows(STOCK_ITEMS.map((s) => ({ ...s, utuh: '', sisa: '' }))); setSavedOpnameId(null); setDownloadError(''); }}>Reset</button>
             <button className="kp-btn" onClick={() => setIsSaveConfirmOpen(true)}>Save</button>
             <button
@@ -712,7 +741,7 @@ export default function Stock({ layout = 'staff' }) {
         {saveError && <div style={{ marginBottom: 10, color: 'var(--bad)', fontSize: 12 }}>{saveError}</div>}
         {downloadError && <div style={{ marginBottom: 10, color: 'var(--bad)', fontSize: 12 }}>{downloadError}</div>}
         {!savedOpnameId && (
-          <div style={{ marginBottom: 10, color: 'var(--text-muted)', fontSize: 12 }}>
+          <div style={{ marginBottom: 10, fontSize: 12 }}>
             Isi data opname lalu klik <strong>Save</strong>, kemudian tombol <strong>Download PDF</strong> akan aktif.
           </div>
         )}
@@ -720,7 +749,7 @@ export default function Stock({ layout = 'staff' }) {
         <div className="kp-card" style={{ padding: 12, overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 980 }}>
             <thead>
-              <tr style={{ textAlign: 'left', color: 'var(--text-muted)', fontSize: 12 }}>
+              <tr style={{ textAlign: 'left', color: 'var(--text)', fontSize: 12 }}>
                 <th style={{ padding: '10px 12px', width: 320 }}>Bahan</th>
                 <th style={{ padding: '10px 12px', width: 120 }}>Utuh</th>
                 <th style={{ padding: '10px 12px', width: 120 }}>Sisa</th>
@@ -728,10 +757,15 @@ export default function Stock({ layout = 'staff' }) {
               </tr>
             </thead>
             <tbody>
-              {computed.map((r) => (
+              {filteredComputed.length === 0 && (
+                <tr><td colSpan={4} style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+                  Tidak ditemukan &ldquo;{opnameSearch}&rdquo;
+                </td></tr>
+              )}
+              {filteredComputed.map((r) => (
                 <tr key={r.id} style={{ borderTop: '1px solid var(--line)' }}>
                   <td style={{ padding: '10px 12px' }}>
-                    <div style={{ fontWeight: 600, color: 'var(--text)' }}>{r.name}</div>
+                    <div style={{ fontWeight: 600 }}>{r.name}</div>
                     <div className="kp-mono" style={{ fontSize: 12, color: 'var(--text-muted)' }}>{r.unit}</div>
                   </td>
                   <td style={{ padding: '10px 12px' }}>
@@ -760,7 +794,7 @@ export default function Stock({ layout = 'staff' }) {
                 </div>
                 <button className="kp-btn kp-btn-ghost" onClick={() => setIsSaveConfirmOpen(false)}>Tutup</button>
               </div>
-              <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>
+              <div style={{ fontSize: 13 }}>
                 Pastikan Data Yang Anda Masukkan Sudah Sesuai. Anda Yakin Menyimpan Stock Opname ini?
               </div>
               {saveError && <div style={{ marginTop: 10, color: 'var(--bad)', fontSize: 12 }}>{saveError}</div>}

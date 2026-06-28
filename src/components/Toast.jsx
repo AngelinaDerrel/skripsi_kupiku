@@ -37,9 +37,11 @@ export function ToastProvider({ children }) {
                 borderRadius: 10,
                 background: t.type === 'success'
                   ? 'rgba(14, 35, 16, 0.97)'
+                  : t.type === 'error'
+                  ? 'rgba(35, 10, 10, 0.97)'
                   : 'rgba(28, 18, 10, 0.97)',
-                border: `1px solid ${t.type === 'success' ? 'rgba(74,160,74,0.5)' : 'rgba(197,139,90,0.5)'}`,
-                color: t.type === 'success' ? '#86efac' : '#E8D9C8',
+                border: `1px solid ${t.type === 'success' ? 'rgba(74,160,74,0.5)' : t.type === 'error' ? 'rgba(197,74,74,0.6)' : 'rgba(197,139,90,0.5)'}`,
+                color: t.type === 'success' ? '#86efac' : t.type === 'error' ? '#fca5a5' : '#E8D9C8',
                 fontSize: 13, lineHeight: 1.6,
                 boxShadow: '0 8px 32px rgba(0,0,0,0.55)',
                 backdropFilter: 'blur(14px)',

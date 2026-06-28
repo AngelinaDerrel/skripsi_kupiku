@@ -111,6 +111,11 @@ export default function Menu() {
     return menuItems.filter((item) => item.categoryId === filter);
   }, [filter, menuItems]);
 
+  const drinkCount = useMemo(
+    () => menuItems.filter((item) => item.categoryId !== 'food').length,
+    [menuItems]
+  );
+
   const formatPrice = (value) => {
     const numeric = Number(value);
     if (Number.isFinite(numeric)) return numeric.toLocaleString('id-ID');
@@ -142,21 +147,6 @@ export default function Menu() {
             <span style={{ fontStyle: 'italic', color: 'var(--brown-3)' }}>every</span> mood.
           </h1>
         </div>
-        <div style={{ paddingBottom: 6 }}>
-          <p style={{ fontSize: 15, lineHeight: 1.6, color: 'var(--text-muted)', maxWidth: 380, margin: 0 }}>
-            35 drinks across espresso, brew, milk and cold. Tap any item to see tasting notes
-            and what mood it pairs with.
-          </p>
-          <div style={{
-            display: 'flex', gap: 18, marginTop: 22, fontSize: 12,
-            color: 'var(--text-dim)', fontFamily: 'var(--font-mono)',
-            textTransform: 'uppercase', letterSpacing: '0.1em'
-          }}>
-            <span>{items.length} menu</span>
-            <span>·</span>
-            <span>{loading ? 'loading...' : ''}</span>
-          </div>
-        </div>
       </div>
 
       {/* Filter pills */}
@@ -182,6 +172,25 @@ export default function Menu() {
 
       {/* Grid */}
       <div className="kp-menu-grid-outer">
+        {/* CTA mood check-in — top */}
+        <div style={{
+          marginBottom: 28, padding: '24px 28px',
+          background: 'var(--surface)', border: '1px solid var(--line)',
+          borderRadius: 'var(--radius)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24
+        }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 500 }}>Don't know what you're in the mood for?</div>
+            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>
+              Take the 30-second mood check-in — we'll narrow {drinkCount} drinks down to your top 4.
+            </div>
+          </div>
+          <button className="kp-btn" onClick={() => nav('/mood')}>
+            Try the mood check-in
+            <span className="kp-mono" style={{ fontSize: 12 }}>→</span>
+          </button>
+        </div>
+
         {error && (
           <div style={{
             marginBottom: 18, padding: '10px 14px',
@@ -293,7 +302,7 @@ export default function Menu() {
           <div>
             <div style={{ fontSize: 16, fontWeight: 500 }}>Don't know what you're in the mood for?</div>
             <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>
-              Take the 30-second mood check-in — we'll narrow 35 drinks down to your top 4.
+              Take the 30-second mood check-in — we'll narrow {drinkCount} drinks down to your top 4.
             </div>
           </div>
           <button className="kp-btn" onClick={() => nav('/mood')}>

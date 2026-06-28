@@ -2,18 +2,17 @@ import React from 'react';
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { MOODS } from '../data/moods.js';
-import MoodGlyph from '../components/MoodGlyph.jsx';
 import api from '../lib/api';
 
 const FLAVORS = [
-  { id: 'sweet', label: 'Sweet' },
-  { id: 'bitter', label: 'Bitter' },
-  { id: 'sour', label: 'Sour' },
+  { id: 'sweet',   label: 'Sweet',  emoji: '🍯' },
+  { id: 'bitter',  label: 'Bitter', emoji: '☕' },
+  { id: 'sour',    label: 'Sour',   emoji: '🍋' },
 ];
 
 const TEMPS = [
-  { id: 'hot', label: 'Hot' },
-  { id: 'ice', label: 'Ice' },
+  { id: 'hot', label: 'Hot', emoji: '🔥' },
+  { id: 'ice', label: 'Ice', emoji: '🧊' },
 ];
 
 export default function PreferenceFlow() {
@@ -78,12 +77,16 @@ export default function PreferenceFlow() {
 
       <div className="kp-mood-layout">
         <div className="kp-mood-main">
-          <div className="kp-eyebrow" style={{ marginBottom: 16 }}>Preference check-in</div>
+          <div className="kp-eyebrow" style={{ marginBottom: 16 }}>
+            {step === 2 ? 'Preference check-in' : 'Last step'}
+          </div>
           <h2 className="kp-display kp-h2-mood" style={{ maxWidth: 640 }}>
-            Choose your<br />flavor profile
+            {step === 2 ? <>Choose your<br />flavor profile</> : <>Choose your<br />serving temperature</>}
           </h2>
           <p style={{ color: 'var(--text-muted)', marginTop: 20, maxWidth: 480, fontSize: 15, lineHeight: 1.55 }}>
-            Pick a flavor direction and we'll narrow down the menu to match.
+            {step === 2
+              ? "Pick a flavor direction and we'll narrow down the menu to match."
+              : "Pick how you'd like your drink served."}
           </p>
 
           {step === 2 && (
@@ -96,12 +99,17 @@ export default function PreferenceFlow() {
                     background: isActive ? 'linear-gradient(160deg, rgba(107,79,58,0.22), rgba(107,79,58,0.05))' : 'var(--surface)',
                     border: isActive ? '1px solid rgba(168,131,95,0.55)' : '1px solid var(--line)',
                     boxShadow: isActive ? 'var(--shadow), 0 0 0 4px rgba(107,79,58,0.08)' : 'var(--shadow-sm)',
-                    transition: 'all 220ms ease', minHeight: 120, display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
+                    transition: 'all 220ms ease', minHeight: 140, display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <div style={{ fontSize: 20, fontWeight: 600 }}>{f.label}</div>
+                      <span style={{
+                        fontSize: 32, lineHeight: 1,
+                        filter: isActive ? 'drop-shadow(0 0 8px rgba(168,131,95,0.5))' : 'none',
+                        transition: 'filter 220ms ease',
+                      }}>{f.emoji}</span>
                       <span className="kp-mono" style={{ fontSize: 10, color: isActive ? 'var(--brown-3)' : 'var(--text-dim)' }}>pick</span>
                     </div>
+                    <div style={{ fontSize: 20, fontWeight: 600 }}>{f.label}</div>
                   </div>
                 );
               })}
@@ -119,17 +127,23 @@ export default function PreferenceFlow() {
 
           {step === 3 && (
             <div style={{ marginTop: 36 }}>
-              <h3 className="kp-eyebrow">Serve temperature</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14, marginTop: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14, marginTop: 0 }}>
                 {TEMPS.map(t => {
                   const isActive = temp === t.id;
                   return (
                     <div key={t.id} onClick={() => setTemp(t.id)} className="kp-card" style={{
-                      padding: 20, cursor: 'pointer', display: 'flex', alignItems: 'center',
+                      padding: '20px 24px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 16,
                       border: isActive ? '1px solid rgba(168,131,95,0.55)' : '1px solid var(--line)',
-                      background: isActive ? 'linear-gradient(160deg, rgba(107,79,58,0.12), rgba(107,79,58,0.02))' : 'var(--surface)'
+                      background: isActive ? 'linear-gradient(160deg, rgba(107,79,58,0.18), rgba(107,79,58,0.04))' : 'var(--surface)',
+                      boxShadow: isActive ? 'var(--shadow), 0 0 0 4px rgba(107,79,58,0.08)' : 'var(--shadow-sm)',
+                      transition: 'all 220ms ease',
                     }}>
-                      <div style={{ fontSize: 16 }}>{t.label}</div>
+                      <span style={{
+                        fontSize: 36, lineHeight: 1,
+                        filter: isActive ? 'drop-shadow(0 0 10px rgba(168,131,95,0.5))' : 'none',
+                        transition: 'filter 220ms ease',
+                      }}>{t.emoji}</span>
+                      <div style={{ fontSize: 18, fontWeight: 500 }}>{t.label}</div>
                     </div>
                   );
                 })}
@@ -149,7 +163,7 @@ export default function PreferenceFlow() {
 
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
             <div style={{ width: 56, height: 56, borderRadius: 12, background: 'rgba(107,79,58,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <MoodGlyph shape={currentMood.shape} active />
+              <span style={{ fontSize: 28, lineHeight: 1 }}>{currentMood.emoji}</span>
             </div>
             <div>
               <div style={{ fontSize: 16, fontWeight: 700 }}>{currentMood.name}</div>
@@ -165,14 +179,18 @@ export default function PreferenceFlow() {
           {step >= 2 && (
             <div style={{ marginTop: 16 }}>
               <div className="kp-eyebrow" style={{ fontSize: 10 }}>Selected flavor</div>
-              <div style={{ fontSize: 16, marginTop: 8 }}>{flavor ? FLAVORS.find(f => f.id === flavor)?.label : '—'}</div>
+              <div style={{ fontSize: 16, marginTop: 8 }}>
+                {flavor ? `${FLAVORS.find(f => f.id === flavor)?.emoji} ${FLAVORS.find(f => f.id === flavor)?.label}` : '—'}
+              </div>
             </div>
           )}
 
           {step >= 3 && (
             <div style={{ marginTop: 16 }}>
               <div className="kp-eyebrow" style={{ fontSize: 10 }}>Serving</div>
-              <div style={{ fontSize: 16, marginTop: 8 }}>{temp ? TEMPS.find(t => t.id === temp)?.label : '—'}</div>
+              <div style={{ fontSize: 16, marginTop: 8 }}>
+                {temp ? `${TEMPS.find(t => t.id === temp)?.emoji} ${TEMPS.find(t => t.id === temp)?.label}` : '—'}
+              </div>
             </div>
           )}
 
