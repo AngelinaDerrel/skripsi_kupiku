@@ -37,20 +37,6 @@ function nowLabel() {
     + ', ' + n.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 }
 
-async function downloadBlob(url, filename, token) {
-  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-  if (!res.ok) throw new Error('Gagal generate PDF');
-  const blob = await res.blob();
-  const href = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = href;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(href);
-}
-
 // ---- SVG Bar Chart (vertical, for daily penjualan) ----
 function VertBarChart({ items, color = '#6B4F3A' }) {
   if (!items.length) return <EmptyChart />;
@@ -137,239 +123,6 @@ function StatCard({ label, value }) {
   );
 }
 
-// ---- Shared PDF CSS ----
-const PDF_CSS = `
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:system-ui,sans-serif;color:#111;padding:32px 40px;font-size:13px}
-  .brand{text-align:center;margin-bottom:20px}
-  .brand-name{font-size:20px;font-weight:800;color:#6B4F3A;letter-spacing:.02em}
-  .brand-sub{font-size:10px;color:#aaa;letter-spacing:.1em;text-transform:uppercase;margin-top:2px}
-  h1{font-size:18px;font-weight:700;text-align:center;margin-bottom:16px}
-  .info-row{display:flex;justify-content:space-between;font-size:12px;color:#555;border-top:2px solid #6B4F3A;border-bottom:1px solid #eee;padding:10px 0;margin-bottom:16px}
-  .total-card{background:#f8f5f2;border-left:4px solid #6B4F3A;padding:12px 16px;border-radius:4px;margin-bottom:20px;display:inline-block;min-width:220px}
-  .total-label{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
-  .total-value{font-size:22px;font-weight:700;color:#6B4F3A}
-  table{width:100%;border-collapse:collapse;font-size:12px}
-  thead tr{background:#6B4F3A;color:#fff}
-  th{padding:9px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
-  td{padding:8px 10px;border-bottom:1px solid #f0f0f0;vertical-align:top}
-  tr:nth-child(even) td{background:#fafafa}
-  .footer{margin-top:20px;font-size:10px;color:#bbb;text-align:right;border-top:1px solid #eee;padding-top:8px}
-  @media print{body{padding:16px 24px}}
-`;
-
-function generateDailyPrintHTML({ tanggal, dayName, bulanName, tahun, data }) {
-  const now = nowLabel();
-  const [y, , d] = tanggal.split('-');
-  const reportDate = `${dayName}, ${parseInt(d, 10)} ${bulanName} ${y}`;
-  const rows = (data.rows || []).map((r) => `
-    <tr>
-      <td>${r.kode_pesanan}</td>
-      <td>${formatTime(r.waktu_pemesanan)}</td>
-      <td>${r.menu}</td>
-      <td style="text-align:center">${r.qty}</td>
-      <td style="text-align:right">${fmt(r.total_harga)}</td>
-    </tr>`).join('');
-
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
-  <title>Rekap Penjualan Harian - ${reportDate}</title>
-  <style>${PDF_CSS}</style>
-</head><body>
-  <div class="brand">
-    <div class="brand-name">Kupiku Coffee</div>
-    <div class="brand-sub">Yogyakarta</div>
-  </div>
-  <h1>Rekap Total Penjualan Harian</h1>
-  <div class="info-row">
-    <span><strong>${reportDate}</strong></span>
-    <span>Dicetak: ${now}</span>
-  </div>
-  <div class="total-card">
-    <div class="total-label">Total Pendapatan</div>
-    <div class="total-value">${fmt(data.total_pendapatan)}</div>
-  </div>
-  <table>
-    <thead><tr>
-      <th>Kode Pesanan</th><th>Waktu</th><th>Menu</th>
-      <th style="text-align:center">Qty</th><th style="text-align:right">Total</th>
-    </tr></thead>
-    <tbody>${rows}</tbody>
-  </table>
-  <div class="footer">Kupiku Coffee — Laporan Penjualan Harian ${reportDate}</div>
-</body></html>`;
-}
-
-function generateMonthlyPrintHTML({ bulan, tahun, data }) {
-  const now = nowLabel();
-  const periodLabel = `${MONTHS[bulan - 1]} ${tahun}`;
-  const rows = (data.menus || []).map((m) => `
-    <tr>
-      <td>${m.id_menu}</td>
-      <td>${m.nama_menu}</td>
-      <td>${m.nama_kategori}</td>
-      <td style="text-align:center">${m.qty_terjual}</td>
-    </tr>`).join('');
-
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
-  <title>Laporan Penjualan Bulanan - ${periodLabel}</title>
-  <style>${PDF_CSS}</style>
-</head><body>
-  <div class="brand">
-    <div class="brand-name">Kupiku Coffee</div>
-    <div class="brand-sub">Yogyakarta</div>
-  </div>
-  <h1>Laporan Penjualan Bulanan</h1>
-  <div class="info-row">
-    <span>Periode: <strong>${periodLabel}</strong></span>
-    <span>Dicetak: ${now}</span>
-  </div>
-  <div class="total-card">
-    <div class="total-label">Total Pendapatan</div>
-    <div class="total-value">${fmt(data.total_pendapatan)}</div>
-  </div>
-  <table>
-    <thead><tr>
-      <th>ID Menu</th><th>Menu</th><th>Kategori</th>
-      <th style="text-align:center">Qty Terjual</th>
-    </tr></thead>
-    <tbody>${rows}</tbody>
-  </table>
-  <div class="footer">Kupiku Coffee — Laporan Penjualan Bulanan ${periodLabel}</div>
-</body></html>`;
-}
-
-// ---- PDF print HTML generator ----
-function buildSVGBar(items, color, W = 580, H = 140) {
-  if (!items.length) return '<p style="color:#888">Tidak ada data</p>';
-  const PAD = 20;
-  const max = Math.max(...items.map((d) => d.v), 1);
-  const slotW = Math.floor((W - PAD * 2) / items.length);
-  const bw = Math.max(4, slotW - 3);
-  const bars = items.map((d, i) => {
-    const bh = Math.max(2, Math.round((d.v / max) * H));
-    const x = PAD + i * slotW;
-    const y = H - bh;
-    const tick = i % Math.ceil(items.length / 15) === 0
-      ? `<text x="${x + bw / 2}" y="${H + 16}" text-anchor="middle" font-size="9" fill="#888">${d.l}</text>` : '';
-    return `<rect x="${x}" y="${y}" width="${bw}" height="${bh}" fill="${color}" rx="2" opacity="0.85"/>${tick}`;
-  }).join('');
-  return `<svg width="${W}" height="${H + 24}" style="display:block;overflow:visible"><line x1="${PAD}" y1="${H}" x2="${W - PAD}" y2="${H}" stroke="#ddd" stroke-width="1"/>${bars}</svg>`;
-}
-
-function buildHSVGBar(items, color1, color2) {
-  if (!items.length) return '<p style="color:#888">Tidak ada data</p>';
-  const LW = 150, BW = 360, BH = 12, ROW = color2 ? 32 : 20, GAP = 3;
-  const max = Math.max(...items.flatMap((d) => [d.v1, d.v2 ?? 0]), 1);
-  const H = items.length * ROW + 10;
-  const rows = items.map((d, i) => {
-    const y = i * ROW + 4;
-    const w1 = Math.round((d.v1 / max) * BW);
-    const label = d.l.length > 18 ? d.l.slice(0, 16) + '…' : d.l;
-    let html = `<text x="${LW - 6}" y="${y + BH - 1}" text-anchor="end" font-size="10" fill="#555">${label}</text>`;
-    html += `<rect x="${LW}" y="${y}" width="${w1}" height="${BH}" fill="${color1}" rx="2" opacity="0.85"/>`;
-    html += `<text x="${LW + w1 + 4}" y="${y + BH - 1}" font-size="9" fill="#777">${d.v1}</text>`;
-    if (color2 && d.v2 != null) {
-      const w2 = Math.round((d.v2 / max) * BW);
-      html += `<rect x="${LW}" y="${y + BH + GAP}" width="${w2}" height="${BH}" fill="${color2}" rx="2" opacity="0.85"/>`;
-      html += `<text x="${LW + w2 + 4}" y="${y + BH + GAP + BH - 1}" font-size="9" fill="#777">${d.v2}</text>`;
-    }
-    return html;
-  }).join('');
-  return `<svg width="${LW + BW + 80}" height="${H}" style="display:block;overflow:visible">${rows}</svg>`;
-}
-
-function generatePrintHTML({ tab, bulan, tahun, penjualan, stok, opname }) {
-  const periodLabel = `${MONTHS[bulan - 1]} ${tahun}`;
-  const titles = { penjualan: 'Laporan Penjualan', stok: 'Laporan Stok Masuk / Keluar', opname: 'Laporan Stock Opname' };
-
-  let body = '';
-
-  if (tab === 'penjualan' && penjualan) {
-    const rataRata = penjualan.jumlah_pesanan > 0
-      ? Math.round(penjualan.total / penjualan.jumlah_pesanan) : 0;
-    const days = Array.from({ length: 31 }, (_, i) => {
-      const d = penjualan.harian?.find((h) => h.hari === i + 1);
-      return { l: String(i + 1), v: d ? Number(d.total) : 0 };
-    });
-    body = `
-      <div class="stats">
-        <div class="stat"><div class="slabel">Total Pendapatan</div><div class="sval">${fmt(penjualan.total)}</div></div>
-        <div class="stat"><div class="slabel">Jumlah Pesanan</div><div class="sval">${penjualan.jumlah_pesanan}</div></div>
-        <div class="stat"><div class="slabel">Rata-rata / Pesanan</div><div class="sval">${fmt(rataRata)}</div></div>
-      </div>
-      <div class="section-title">Grafik Penjualan Harian</div>
-      ${buildSVGBar(days, '#6B4F3A')}
-      <div class="section-title">Top 5 Menu Terlaris</div>
-      <table><thead><tr><th>#</th><th>Menu</th><th>Terjual</th></tr></thead><tbody>
-        ${(penjualan.top_menu || []).map((m, i) => `<tr><td>${i + 1}</td><td>${m.nama_menu}</td><td>${m.terjual}</td></tr>`).join('')}
-      </tbody></table>
-      <div class="section-title">Detail Harian</div>
-      <table><thead><tr><th>Hari</th><th>Pesanan</th><th>Total</th></tr></thead><tbody>
-        ${(penjualan.harian || []).map((h) => `<tr><td>Hari ${h.hari}</td><td>${h.jumlah_pesanan}</td><td>${fmt(h.total)}</td></tr>`).join('')}
-      </tbody></table>`;
-  }
-
-  if (tab === 'stok' && stok) {
-    const items = (stok.data || []).map((d) => ({ l: d.nama_bahan, v1: d.total_masuk, v2: d.total_keluar }));
-    body = `
-      <div class="stats">
-        <div class="stat"><div class="slabel">Jenis Bahan Aktif</div><div class="sval">${items.length}</div></div>
-        <div class="stat"><div class="slabel">Total Masuk (semua bahan)</div><div class="sval">${items.reduce((s, d) => s + d.v1, 0)} unit</div></div>
-        <div class="stat"><div class="slabel">Total Keluar (semua bahan)</div><div class="sval">${items.reduce((s, d) => s + d.v2, 0)} unit</div></div>
-      </div>
-      <div style="display:flex;gap:12px;margin-bottom:10px;font-size:11px;color:#666">
-        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#6B4F3A;margin-right:4px;vertical-align:middle"></span>Masuk</span>
-        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#4A7C59;margin-right:4px;vertical-align:middle"></span>Keluar</span>
-      </div>
-      <div class="section-title">Grafik Stok Masuk vs Keluar</div>
-      ${buildHSVGBar(items, '#6B4F3A', '#4A7C59')}
-      <div class="section-title">Tabel Detail</div>
-      <table><thead><tr><th>Bahan</th><th>Masuk</th><th>Keluar</th><th>Stok Saat Ini</th><th>Satuan</th></tr></thead><tbody>
-        ${(stok.data || []).map((d) => `<tr><td>${d.nama_bahan}</td><td>${d.total_masuk}</td><td>${d.total_keluar}</td><td>${d.stok_saat_ini}</td><td>${d.satuan}</td></tr>`).join('')}
-      </tbody></table>`;
-  }
-
-  if (tab === 'opname' && opname) {
-    const items = (opname.data || []).map((d) => ({ l: d.nama_bahan, v1: d.stok_saat_ini }));
-    body = `
-      <div class="stats">
-        <div class="stat"><div class="slabel">Total Jenis Bahan</div><div class="sval">${items.length}</div></div>
-        <div class="stat"><div class="slabel">Stok 0 (Habis)</div><div class="sval">${(opname.data || []).filter((d) => d.stok_saat_ini === 0).length} item</div></div>
-      </div>
-      <div class="section-title">Grafik Stok Saat Ini</div>
-      ${buildHSVGBar(items, '#4A7C59', null)}
-      <div class="section-title">Tabel Stock Opname — ${periodLabel}</div>
-      <table><thead><tr><th>Bahan</th><th>Satuan</th><th>Masuk Bulan Ini</th><th>Keluar Bulan Ini</th><th>Stok Saat Ini</th></tr></thead><tbody>
-        ${(opname.data || []).map((d) => `<tr><td>${d.nama_bahan}</td><td>${d.satuan}</td><td>${d.masuk_bulan}</td><td>${d.keluar_bulan}</td><td>${d.stok_saat_ini}</td></tr>`).join('')}
-      </tbody></table>`;
-  }
-
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
-    <title>${titles[tab]} — ${periodLabel}</title>
-    <style>
-      *{box-sizing:border-box;margin:0;padding:0}
-      body{font-family:system-ui,sans-serif;color:#111;padding:32px 40px}
-      h1{font-size:22px;font-weight:700;margin-bottom:4px}
-      .subtitle{color:#777;font-size:12px;margin-bottom:24px}
-      .brand{font-size:11px;color:#aaa;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}
-      .stats{display:flex;gap:12px;margin-bottom:24px}
-      .stat{flex:1;background:#f5f5f5;padding:12px 16px;border-radius:8px}
-      .slabel{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
-      .sval{font-size:18px;font-weight:700}
-      .section-title{font-size:13px;font-weight:600;margin:24px 0 10px;border-bottom:1px solid #eee;padding-bottom:6px}
-      table{width:100%;border-collapse:collapse;font-size:12px}
-      th{text-align:left;padding:8px;border-bottom:2px solid #eee;color:#888;font-size:10px;text-transform:uppercase;letter-spacing:.06em}
-      td{padding:8px;border-bottom:1px solid #f0f0f0}
-      @media print{body{padding:16px 24px}}
-    </style>
-  </head><body>
-    <div class="brand">Kupiku Coffee — Yogyakarta</div>
-    <h1>${titles[tab]}</h1>
-    <div class="subtitle">Periode: ${periodLabel}</div>
-    ${body}
-  </body></html>`;
-}
-
 // ================================================================
 // Main component
 // ================================================================
@@ -385,8 +138,7 @@ export default function Laporan() {
   const [opname, setOpname]       = useState(null);
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState(null);
-  const [loadingPdf, setLoadingPdf] = useState(null);
-  const [opnameDownloadError, setOpnameDownloadError] = useState('');
+  const [opnameDownloadError] = useState('');
   const [hoverStok, setHoverStok] = useState(null);
 
   useEffect(() => { fetchData(); }, [tab, bulan, tahun]);
@@ -410,76 +162,17 @@ export default function Laporan() {
     }
   }
 
-  async function downloadDailyPDF(hari) {
-    const key = `day-${hari}`;
+    function downloadDailyPDF(hari) {
     const tanggal = `${tahun}-${String(bulan).padStart(2, '0')}-${String(hari).padStart(2, '0')}`;
-    setLoadingPdf(key);
-    try {
-      await downloadBlob(
-        `${BASE}/laporan/pdf/harian?tanggal=${tanggal}`,
-        `laporan-harian-${tanggal}.pdf`,
-        token
-      );
-    } catch (e) {
-      console.error('PDF daily error:', e);
-    } finally {
-      setLoadingPdf(null);
-    }
+    window.open(`/pdf/penjualan-harian?tanggal=${tanggal}`, '_blank');
   }
 
-  async function downloadOpnamePDF(id, tanggal) {
-    const key = `opname-${id}`;
-    setLoadingPdf(key);
-    setOpnameDownloadError('');
-    try {
-      await downloadBlob(
-        `${BASE}/stock-opname/${id}/pdf`,
-        `stock-opname-${tanggal}.pdf`,
-        token,
-      );
-    } catch (e) {
-      setOpnameDownloadError('Gagal download PDF: ' + (e.message || ''));
-    } finally {
-      setLoadingPdf(null);
-    }
+  function downloadOpnamePDF(id) {
+    window.open(`/pdf/stock-opname/${id}`, '_blank');
   }
 
-  async function downloadMonthlyPDF() {
-    setLoadingPdf('monthly');
-    try {
-      await downloadBlob(
-        `${BASE}/laporan/pdf/bulanan?bulan=${bulan}&tahun=${tahun}`,
-        `laporan-bulanan-${tahun}-${String(bulan).padStart(2, '0')}.pdf`,
-        token
-      );
-    } catch (e) {
-      console.error('PDF monthly error:', e);
-    } finally {
-      setLoadingPdf(null);
-    }
-  }
-
-  async function downloadStokPDF() {
-    setLoadingPdf('stok-monthly');
-    try {
-      await downloadBlob(
-        `${BASE}/laporan/pdf/stok?bulan=${bulan}&tahun=${tahun}`,
-        `laporan-stok-${tahun}-${String(bulan).padStart(2, '0')}.pdf`,
-        token
-      );
-    } catch (e) {
-      console.error('PDF stok error:', e);
-    } finally {
-      setLoadingPdf(null);
-    }
-  }
-
-  function exportPDF() {
-    const html = generatePrintHTML({ tab, bulan, tahun, penjualan, stok, opname });
-    const w = window.open('', '_blank', 'width=900,height=700');
-    w.document.write(html);
-    w.document.close();
-    setTimeout(() => { w.focus(); w.print(); }, 600);
+  function downloadStokPDF() {
+    window.open(`/pdf/stok-masuk-keluar?bulan=${bulan}&tahun=${tahun}`, '_blank');
   }
 
   const years = [];
@@ -530,7 +223,7 @@ export default function Laporan() {
             {tab === 'penjualan' && (
               <button
                 className="kp-btn kp-btn-sm"
-                onClick={exportPDF}
+                onClick={() => window.open(`/pdf/penjualan-bulanan?bulan=${bulan}&tahun=${tahun}`, '_blank')}
                 disabled={loading || !penjualan}
                 style={{ fontSize: 12 }}
               >
@@ -541,10 +234,10 @@ export default function Laporan() {
               <button
                 className="kp-btn kp-btn-sm"
                 onClick={downloadStokPDF}
-                disabled={loading || !stok || loadingPdf === 'stok-monthly'}
+                disabled={loading || !stok}
                 style={{ fontSize: 12 }}
               >
-                {loadingPdf === 'stok-monthly' ? '...' : '↓ Export Stok PDF'}
+                ↓ Export Stok PDF
               </button>
             )}
           </div>
@@ -613,7 +306,6 @@ export default function Laporan() {
                   </div>
                   {(penjualan.harian || []).map((h) => {
                     const dayName = getDayName(tahun, bulan, h.hari);
-                    const key = `day-${h.hari}`;
                     return (
                       <div
                         key={h.hari}
@@ -630,10 +322,9 @@ export default function Laporan() {
                         <button
                           className="kp-btn kp-btn-sm"
                           style={{ fontSize: 11, minWidth: 95, flexShrink: 0 }}
-                          disabled={loadingPdf === key}
                           onClick={() => downloadDailyPDF(h.hari)}
                         >
-                          {loadingPdf === key ? '...' : '↓ Download'}
+                          ↓ Download
                         </button>
                       </div>
                     );
@@ -725,7 +416,6 @@ export default function Laporan() {
               )}
 
               {oItems.map((item, i) => {
-                const key = `opname-${item.id_opname}`;
                 const tgl = new Date(item.tanggal_opname + 'T00:00:00');
                 const tglLabel = `${tgl.getDate()} ${MONTHS[tgl.getMonth()]} ${tgl.getFullYear()}`;
                 return (
@@ -750,10 +440,9 @@ export default function Laporan() {
                     <button
                       className="kp-btn kp-btn-sm"
                       style={{ fontSize: 11, minWidth: 105, flexShrink: 0 }}
-                      disabled={loadingPdf === key}
-                      onClick={() => downloadOpnamePDF(item.id_opname, item.tanggal_opname)}
+                      onClick={() => downloadOpnamePDF(item.id_opname)}
                     >
-                      {loadingPdf === key ? '...' : '↓ Download PDF'}
+                      ↓ Cetak PDF
                     </button>
                   </div>
                 );

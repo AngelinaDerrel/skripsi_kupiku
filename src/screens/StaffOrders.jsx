@@ -25,16 +25,8 @@ function fmtRp(val) {
   return 'Rp ' + Number(val).toLocaleString('id-ID');
 }
 
-async function printNota(order) {
-  const url = `${api.rawBase}/pesanan/${order.kode_pesanan}/cetak-nota`;
-  const res = await fetch(url);
-  if (!res.ok) return;
-  const blob = await res.blob();
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `nota-${order.kode_pesanan}.pdf`;
-  a.click();
-  URL.revokeObjectURL(a.href);
+function printNota(order) {
+  window.open(`/pdf/nota/${order.kode_pesanan}`, '_blank');
 }
 
 function Chip({ label, accent, bg }) {

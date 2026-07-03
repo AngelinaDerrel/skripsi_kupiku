@@ -64,6 +64,14 @@ export default function NavIcon({ name, active }) {
       <path d="M3 13c0-2.5 2.2-4.5 5-4.5s5 2 5 4.5" stroke={c} strokeWidth={sw} strokeLinecap="round" />
     </svg>
   );
+  if (name === 'mood') return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <circle cx="8" cy="8" r="6" stroke={c} strokeWidth={sw} />
+      <circle cx="5.5" cy="7" r="0.75" fill={c} />
+      <circle cx="10.5" cy="7" r="0.75" fill={c} />
+      <path d="M5.5 10c.7 1.2 4.3 1.2 5 0" stroke={c} strokeWidth={sw} strokeLinecap="round" />
+    </svg>
+  );
   if (name === 'logout') return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
       <path d="M6 3H3a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h3" stroke={c} strokeWidth={sw} strokeLinecap="round" />

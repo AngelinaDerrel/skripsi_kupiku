@@ -86,39 +86,6 @@ export default function Landing() {
               />
             </div>
           </div>
-
-          {/* <div className="kp-card" style={{ position: 'absolute', top: 70, left: 0, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12, boxShadow: 'var(--shadow)', backdropFilter: 'blur(8px)' }}>
-            <div style={{ width: 36, height: 36, borderRadius: 8, background: 'rgba(107,79,58,0.2)', border: '1px solid rgba(107,79,58,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ width: 18, height: 12, borderRadius: '0 0 8px 8px', background: 'rgba(168,131,95,0.5)', position: 'relative' }}>
-                <div style={{ position: 'absolute', right: -6, top: 2, width: 8, height: 8, borderRadius: '50%', border: '1.5px solid rgba(168,131,95,0.8)' }} />
-              </div>
-            </div>
-            <div>
-              <div className="kp-eyebrow" style={{ fontSize: 9 }}>mood · calm</div>
-              <div style={{ fontSize: 13, fontWeight: 500, marginTop: 2 }}>Kopi Susu Original</div>
-            </div>
-          </div> */}
-
-          {/* <div className="kp-card" style={{ position: 'absolute', bottom: 80, right: 30, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12, boxShadow: 'var(--shadow)' }}>
-            <div style={{ width: 36, height: 36, borderRadius: 8, background: 'rgba(197,139,90,0.15)', border: '1px solid rgba(197,139,90,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ width: 18, height: 12, borderRadius: '0 0 8px 8px', background: 'rgba(197,139,90,0.55)', position: 'relative' }}>
-                <div style={{ position: 'absolute', right: -6, top: 2, width: 8, height: 8, borderRadius: '50%', border: '1.5px solid rgba(197,139,90,0.85)' }} />
-              </div>
-            </div>
-            <div>
-              <div className="kp-eyebrow" style={{ fontSize: 9 }}>mood · stressed</div>
-              <div style={{ fontSize: 13, fontWeight: 500, marginTop: 2 }}>Americano Arabica</div>
-            </div>
-          </div> */}
-
-          {/* <div style={{ position: 'absolute', bottom: 10, left: 20, display: 'flex', alignItems: 'flex-end', gap: 4, height: 28 }}>
-            {[6, 14, 22, 18, 10, 26, 14, 8].map((h, i) => (
-              <div key={i} style={{ width: 3, height: h, background: i < 5 ? 'var(--brown-2)' : 'var(--surface-3)', borderRadius: 2 }} />
-            ))}
-            <span className="kp-mono" style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 8, paddingBottom: 1 }}>
-              reading mood…
-            </span>
-          </div> */}
         </div>
       </div>
 
@@ -264,10 +231,6 @@ export default function Landing() {
                 <div className="kp-mono" style={{ fontSize: 10, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Phone</div>
                 <div style={{ fontSize: 13, color: 'var(--text)' }}>+62 22 8888 0142</div>
               </div>
-              {/* <div>
-                <div className="kp-mono" style={{ fontSize: 10, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Wholesale</div>
-                <div style={{ fontSize: 13, color: 'var(--text)' }}>trade@kupiku.coffee</div>
-              </div> */}
             </div>
           </div>
         </div>

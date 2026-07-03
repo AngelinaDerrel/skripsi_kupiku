@@ -4,9 +4,11 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import NavIcon from './NavIcon.jsx';
 
 const BASE_NAV = [
-  { id: 'menu', label: 'Menu', icon: 'cup', path: '/admin' },
-  { id: 'stock', label: 'Stock', icon: 'box', path: '/admin/stock' },
-  { id: 'staff', label: 'Staff', icon: 'people', path: '/admin/staff' },
+  { id: 'menu',          label: 'Menu',              icon: 'cup',    path: '/admin' },
+  { id: 'stock',         label: 'Stok Bahan Baku',   icon: 'box',    path: '/admin/stock' },
+  { id: 'riwayat-stok',  label: 'Riwayat Stok Masuk', icon: 'box',   path: '/admin/riwayat-stok' },
+  { id: 'mood-rules',    label: 'Mood Rules',        icon: 'mood',   path: '/admin/mood-rules' },
+  { id: 'staff',         label: 'Staff',             icon: 'people', path: '/admin/staff' },
 ];
 
 export default function AdminLayout({ children }) {
@@ -93,7 +95,7 @@ export default function AdminLayout({ children }) {
         <div className="kp-eyebrow" style={{ padding: '4px 8px', fontSize: 10 }}>Workspace</div>
         <nav style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 2 }}>
           {NAV.map((item) => {
-            const active = loc.pathname === item.path;
+            const active = loc.pathname === item.path || (item.path !== '/admin' && loc.pathname.startsWith(item.path));
             return (
               <div
                 key={item.id}
