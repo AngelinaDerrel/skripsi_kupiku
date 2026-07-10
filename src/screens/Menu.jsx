@@ -190,7 +190,6 @@ export default function Menu() {
             <span className="kp-mono" style={{ fontSize: 12 }}>→</span>
           </button>
         </div>
-
         {error && (
           <div style={{
             marginBottom: 18, padding: '10px 14px',
@@ -232,9 +231,7 @@ export default function Menu() {
                         }} />
                       </div>
                     )}
-                    <img
-                      src={d.foto}
-                      alt={d.name}
+                    <img src={d.foto} alt={d.name}
                       onLoad={() => setImgLoaded(prev => ({ ...prev, [d.id]: true }))}
                       onError={() => setImgLoaded(prev => ({ ...prev, [d.id]: true }))}
                       style={{

@@ -155,7 +155,6 @@ export default function PreferenceFlow() {
               </div>
             </div>
           )}
-          
         </div>
 
         <aside className="kp-mood-aside">
