@@ -73,7 +73,7 @@ export default function OrderSummary() {
           </div>
           <h1 className="kp-display" style={{ fontSize: 52, lineHeight: 1, margin: '0 0 16px' }}>
             Pesanan kamu,<br />
-            <span style={{ fontStyle: 'italic', color: 'var(--brown-3)' }}>sudah siap?</span>
+            <span style={{ fontStyle: 'italic', color: 'var(--brown-3)' }}>sudah sesuai?</span>
           </h1>
           <p style={{ fontSize: 14, color: 'var(--text-muted)', margin: 0, lineHeight: 1.6 }}>
             Cek kembali pesanan dan kustomisasi sebelum melanjutkan ke pembayaran.

@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { downloadPdfFromElement } from '../../lib/pdf.js';
 
 const BASE = import.meta.env.VITE_API_URL || '/api';
 
@@ -24,9 +25,10 @@ function nowLabel() {
 export default function PdfPenjualanHarian() {
   const [searchParams] = useSearchParams();
   const tanggal = searchParams.get('tanggal');
-  const [data, setData]       = useState(null);
-  const [error, setError]     = useState(null);
-  const [printed, setPrinted] = useState(false);
+  const [data, setData]             = useState(null);
+  const [error, setError]           = useState(null);
+  const [downloaded, setDownloaded] = useState(false);
+  const contentRef = useRef(null);
 
   useEffect(() => {
     if (!tanggal) { setError('Parameter tanggal tidak ditemukan'); return; }
@@ -39,11 +41,17 @@ export default function PdfPenjualanHarian() {
   }, [tanggal]);
 
   useEffect(() => {
-    if (data && !printed) {
-      setPrinted(true);
-      setTimeout(() => window.print(), 500);
+    if (data && !downloaded) {
+      setDownloaded(true);
+      setTimeout(async () => {
+        try {
+          await downloadPdfFromElement(contentRef.current, `penjualan-harian-${tanggal}.pdf`);
+        } finally {
+          window.close();
+        }
+      }, 300);
     }
-  }, [data, printed]);
+  }, [data, downloaded]);
 
   if (error) return (
     <div style={{ padding: 40, fontFamily: 'system-ui', color: '#c00', textAlign: 'center' }}>
@@ -59,7 +67,7 @@ export default function PdfPenjualanHarian() {
     <>
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: system-ui, sans-serif; font-size: 12px; color: #111; padding: 28px 32px; }
+        .pdf-page { font-family: system-ui, sans-serif; font-size: 12px; color: #111; padding: 28px 32px; background: #fff; }
         .brand { text-align: center; font-size: 17px; font-weight: bold; color: #6B4F3A; margin-bottom: 2px; }
         .brand-sub { text-align: center; font-size: 9px; color: #aaa; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 16px; }
         h1 { font-size: 16px; font-weight: bold; text-align: center; margin: 4px 0 14px; }
@@ -73,57 +81,54 @@ export default function PdfPenjualanHarian() {
         th { padding: 8px 10px; text-align: left; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; }
         td { padding: 7px 10px; border-bottom: 1px solid #eee; }
         .footer { margin-top: 18px; font-size: 9px; color: #bbb; text-align: right; border-top: 1px solid #eee; padding-top: 6px; }
-        .no-print { text-align: center; margin-bottom: 14px; }
-        @media print { .no-print { display: none !important; } }
       `}</style>
 
-      <div className="no-print">
-        <button onClick={() => window.print()} style={{ padding: '8px 20px', background: '#6B4F3A', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', marginRight: 8 }}>Print / Simpan PDF</button>
-        <button onClick={() => window.close()} style={{ padding: '8px 16px', border: '1px solid #ccc', borderRadius: 6, cursor: 'pointer' }}>Tutup</button>
-      </div>
+      <div style={{ padding: 40, fontFamily: 'system-ui', textAlign: 'center' }}>Menyiapkan &amp; mengunduh PDF...</div>
 
-      <div className="brand">Kupiku Coffee</div>
-      <div className="brand-sub">Yogyakarta</div>
-      <h1>Rekap Total Penjualan Harian</h1>
+      <div ref={contentRef} className="pdf-page" style={{ position: 'fixed', top: 0, left: '-9999px', width: '780px' }}>
+        <div className="brand">Kupiku Coffee</div>
+        <div className="brand-sub">Yogyakarta</div>
+        <h1>Rekap Total Penjualan Harian</h1>
 
-      <table className="info-table">
-        <tbody>
-          <tr>
-            <td><strong>{reportDate}</strong></td>
-            <td style={{ textAlign: 'right' }}>Dicetak: {nowLabel()}</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div className="total-box">
-        <div className="total-label">Total Pendapatan</div>
-        <div className="total-value">{fmtRp(data.total_pendapatan)}</div>
-      </div>
-
-      <table>
-        <thead>
-          <tr>
-            <th>Kode Pesanan</th>
-            <th>Waktu</th>
-            <th>Menu</th>
-            <th style={{ textAlign: 'center' }}>Qty</th>
-            <th style={{ textAlign: 'right' }}>Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          {(data.rows || []).map((r, i) => (
-            <tr key={i} style={{ background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
-              <td>{r.kode_pesanan}</td>
-              <td>{fmtWaktu(r.waktu_pemesanan)}</td>
-              <td>{r.menu}</td>
-              <td style={{ textAlign: 'center' }}>{r.qty}</td>
-              <td style={{ textAlign: 'right' }}>{fmtRp(r.total_harga)}</td>
+        <table className="info-table">
+          <tbody>
+            <tr>
+              <td><strong>{reportDate}</strong></td>
+              <td style={{ textAlign: 'right' }}>Dicetak: {nowLabel()}</td>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </tbody>
+        </table>
 
-      <div className="footer">Kupiku Coffee — Laporan Penjualan Harian {reportDate}</div>
+        <div className="total-box">
+          <div className="total-label">Total Pendapatan</div>
+          <div className="total-value">{fmtRp(data.total_pendapatan)}</div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Kode Pesanan</th>
+              <th>Waktu</th>
+              <th>Menu</th>
+              <th style={{ textAlign: 'center' }}>Qty</th>
+              <th style={{ textAlign: 'right' }}>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(data.rows || []).map((r, i) => (
+              <tr key={i} style={{ background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
+                <td>{r.kode_pesanan}</td>
+                <td>{fmtWaktu(r.waktu_pemesanan)}</td>
+                <td>{r.menu}</td>
+                <td style={{ textAlign: 'center' }}>{r.qty}</td>
+                <td style={{ textAlign: 'right' }}>{fmtRp(r.total_harga)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <div className="footer">Kupiku Coffee — Laporan Penjualan Harian {reportDate}</div>
+      </div>
     </>
   );
 }

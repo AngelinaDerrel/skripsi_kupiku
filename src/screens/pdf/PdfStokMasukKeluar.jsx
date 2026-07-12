@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { downloadPdfFromElement } from '../../lib/pdf.js';
 
 const BASE = import.meta.env.VITE_API_URL || '/api';
 
@@ -15,9 +16,10 @@ export default function PdfStokMasukKeluar() {
   const [searchParams] = useSearchParams();
   const bulan = Number(searchParams.get('bulan')) || new Date().getMonth() + 1;
   const tahun = Number(searchParams.get('tahun')) || new Date().getFullYear();
-  const [data, setData]       = useState(null);
-  const [error, setError]     = useState(null);
-  const [printed, setPrinted] = useState(false);
+  const [data, setData]             = useState(null);
+  const [error, setError]           = useState(null);
+  const [downloaded, setDownloaded] = useState(false);
+  const contentRef = useRef(null);
 
   useEffect(() => {
     const token = localStorage.getItem('kupiku_token');
@@ -29,11 +31,17 @@ export default function PdfStokMasukKeluar() {
   }, [bulan, tahun]);
 
   useEffect(() => {
-    if (data && !printed) {
-      setPrinted(true);
-      setTimeout(() => window.print(), 500);
+    if (data && !downloaded) {
+      setDownloaded(true);
+      setTimeout(async () => {
+        try {
+          await downloadPdfFromElement(contentRef.current, `stok-masuk-keluar-${bulan}-${tahun}.pdf`);
+        } finally {
+          window.close();
+        }
+      }, 300);
     }
-  }, [data, printed]);
+  }, [data, downloaded]);
 
   if (error) return (
     <div style={{ padding: 40, fontFamily: 'system-ui', color: '#c00', textAlign: 'center' }}>
@@ -52,7 +60,7 @@ export default function PdfStokMasukKeluar() {
     <>
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: system-ui, sans-serif; font-size: 12px; color: #111; padding: 28px 32px; }
+        .pdf-page { font-family: system-ui, sans-serif; font-size: 12px; color: #111; padding: 28px 32px; background: #fff; }
         .brand { text-align: center; font-size: 17px; font-weight: bold; color: #6B4F3A; margin-bottom: 2px; }
         .brand-sub { text-align: center; font-size: 9px; color: #aaa; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 16px; }
         h1 { font-size: 16px; font-weight: bold; text-align: center; margin: 4px 0 14px; }
@@ -70,63 +78,60 @@ export default function PdfStokMasukKeluar() {
         th { padding: 8px 10px; text-align: left; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; }
         td { padding: 7px 10px; border-bottom: 1px solid #eee; }
         .footer { margin-top: 18px; font-size: 9px; color: #bbb; text-align: right; border-top: 1px solid #eee; padding-top: 6px; }
-        .no-print { text-align: center; margin-bottom: 14px; }
-        @media print { .no-print { display: none !important; } }
       `}</style>
 
-      <div className="no-print">
-        <button onClick={() => window.print()} style={{ padding: '8px 20px', background: '#6B4F3A', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', marginRight: 8 }}>Print / Simpan PDF</button>
-        <button onClick={() => window.close()} style={{ padding: '8px 16px', border: '1px solid #ccc', borderRadius: 6, cursor: 'pointer' }}>Tutup</button>
-      </div>
+      <div style={{ padding: 40, fontFamily: 'system-ui', textAlign: 'center' }}>Menyiapkan &amp; mengunduh PDF...</div>
 
-      <div className="brand">Kupiku Coffee</div>
-      <div className="brand-sub">Yogyakarta</div>
-      <h1>Laporan Stok Masuk / Keluar</h1>
+      <div ref={contentRef} className="pdf-page" style={{ position: 'fixed', top: 0, left: '-9999px', width: '780px' }}>
+        <div className="brand">Kupiku Coffee</div>
+        <div className="brand-sub">Yogyakarta</div>
+        <h1>Laporan Stok Masuk / Keluar</h1>
 
-      <table className="info-table">
-        <tbody>
-          <tr>
-            <td>Periode: <strong>{periodLabel}</strong></td>
-            <td style={{ textAlign: 'right' }}>Dicetak: {nowLabel()}</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div className="summary">
-        <div className="summary-card masuk">
-          <div className="summary-label">Total Masuk (semua bahan)</div>
-          <div className="summary-value-masuk">{totalMasuk} unit</div>
-        </div>
-        <div className="summary-card keluar">
-          <div className="summary-label">Total Keluar (semua bahan)</div>
-          <div className="summary-value-keluar">{totalKeluar} unit</div>
-        </div>
-      </div>
-
-      <table>
-        <thead>
-          <tr>
-            <th>Bahan</th>
-            <th style={{ textAlign: 'center' }}>Masuk</th>
-            <th style={{ textAlign: 'center' }}>Keluar</th>
-            <th style={{ textAlign: 'center' }}>Stok Saat Ini</th>
-            <th>Satuan</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((d, i) => (
-            <tr key={i} style={{ background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
-              <td>{d.nama_bahan}</td>
-              <td style={{ textAlign: 'center', color: '#4A7C59', fontWeight: 600 }}>{d.total_masuk}</td>
-              <td style={{ textAlign: 'center', color: '#B05A5A', fontWeight: 600 }}>{d.total_keluar}</td>
-              <td style={{ textAlign: 'center', fontWeight: 700 }}>{d.stok_saat_ini}</td>
-              <td style={{ color: '#888' }}>{d.satuan}</td>
+        <table className="info-table">
+          <tbody>
+            <tr>
+              <td>Periode: <strong>{periodLabel}</strong></td>
+              <td style={{ textAlign: 'right' }}>Dicetak: {nowLabel()}</td>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </tbody>
+        </table>
 
-      <div className="footer">Kupiku Coffee — Laporan Stok Masuk/Keluar {periodLabel}</div>
+        <div className="summary">
+          <div className="summary-card masuk">
+            <div className="summary-label">Total Masuk (semua bahan)</div>
+            <div className="summary-value-masuk">{totalMasuk} unit</div>
+          </div>
+          <div className="summary-card keluar">
+            <div className="summary-label">Total Keluar (semua bahan)</div>
+            <div className="summary-value-keluar">{totalKeluar} unit</div>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Bahan</th>
+              <th style={{ textAlign: 'center' }}>Masuk</th>
+              <th style={{ textAlign: 'center' }}>Keluar</th>
+              <th style={{ textAlign: 'center' }}>Stok Saat Ini</th>
+              <th>Satuan</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((d, i) => (
+              <tr key={i} style={{ background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
+                <td>{d.nama_bahan}</td>
+                <td style={{ textAlign: 'center', color: '#4A7C59', fontWeight: 600 }}>{d.total_masuk}</td>
+                <td style={{ textAlign: 'center', color: '#B05A5A', fontWeight: 600 }}>{d.total_keluar}</td>
+                <td style={{ textAlign: 'center', fontWeight: 700 }}>{d.stok_saat_ini}</td>
+                <td style={{ color: '#888' }}>{d.satuan}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <div className="footer">Kupiku Coffee — Laporan Stok Masuk/Keluar {periodLabel}</div>
+      </div>
     </>
   );
 }
