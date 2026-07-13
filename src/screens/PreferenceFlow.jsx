@@ -120,7 +120,7 @@ export default function PreferenceFlow() {
               <div style={{ marginTop: 28 }}>
               <div style={{ display: 'flex', gap: 12 }}>
                 <button className="kp-btn kp-btn-ghost" onClick={() => nav('/mood')}>Back</button>
-                <button className="kp-btn" onClick={() => setStep(3)}>Continue with {FLAVORS.find(x => x.id === flavor)?.label}</button>
+                <button className="kp-btn" style={{ flex: 1, justifyContent: 'center' }} onClick={() => setStep(3)}>Continue with {FLAVORS.find(x => x.id === flavor)?.label}</button>
               </div>
             </div>
           )}
@@ -151,7 +151,7 @@ export default function PreferenceFlow() {
 
               <div style={{ marginTop: 28, display: 'flex', gap: 12 }}>
                 <button className="kp-btn kp-btn-ghost" onClick={() => setStep(2)}>Back</button>
-                <button className="kp-btn" onClick={handleShowMatches} disabled={!temp || remoteLoading}>{remoteLoading ? 'Finding...' : 'Show Matches'}</button>
+                <button className="kp-btn" style={{ flex: 1, justifyContent: 'center' }} onClick={handleShowMatches} disabled={!temp || remoteLoading}>{remoteLoading ? 'Finding...' : 'Show Matches'}</button>
               </div>
             </div>
           )}
@@ -207,11 +207,6 @@ export default function PreferenceFlow() {
           </div>
 
           <div style={{ flex: 1 }} />
-
-          <div style={{ display: 'flex', gap: 12 }}>
-            <button className="kp-btn" style={{ flex: 1 }} onClick={() => nav('/mood')}>Change Mood</button>
-            <button className="kp-btn kp-btn-ghost" style={{ flex: 1 }} onClick={() => nav('/menu')}>Open Menu</button>
-          </div>
         </aside>
       </div>
     </div>

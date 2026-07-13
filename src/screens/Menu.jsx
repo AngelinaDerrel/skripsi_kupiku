@@ -182,7 +182,7 @@ export default function Menu() {
           <div>
             <div style={{ fontSize: 16, fontWeight: 500 }}>Don't know what you're in the mood for?</div>
             <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>
-              Take the 30-second mood check-in — we'll narrow {drinkCount} drinks down to your top 4.
+              Take the 30-second mood check-in
             </div>
           </div>
           <button className="kp-btn" onClick={() => nav('/mood')}>
@@ -299,7 +299,7 @@ export default function Menu() {
           <div>
             <div style={{ fontSize: 16, fontWeight: 500 }}>Don't know what you're in the mood for?</div>
             <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>
-              Take the 30-second mood check-in — we'll narrow {drinkCount} drinks down to your top 4.
+              Take the 30-second mood check-in 
             </div>
           </div>
           <button className="kp-btn" onClick={() => nav('/mood')}>

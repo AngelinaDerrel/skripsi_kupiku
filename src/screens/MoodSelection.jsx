@@ -109,11 +109,6 @@ export default function MoodSelection() {
           </div>
 
           <div style={{ flex: 1 }} />
-
-          <div style={{ display: 'flex', gap: 12 }}>
-            <button className="kp-btn" style={{ flex: 1 }} onClick={() => nav('/preferences', { state: { mood: current.name } })}>Continue</button>
-            <button className="kp-btn kp-btn-ghost" style={{ flex: 1 }} onClick={() => nav('/menu')}>Open Menu</button>
-          </div>
         </aside>
       </div>
     </div>
