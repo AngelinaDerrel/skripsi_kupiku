@@ -82,7 +82,7 @@ export default function PdfNota() {
         fontFamily: 'system-ui', textAlign: 'center',
       }}>Menyiapkan &amp; mengunduh PDF...</div>
 
-      <div ref={contentRef} className="pdf-page" style={{ position: 'absolute', top: 0, left: 0, width: '780px' }}>
+      <div ref={contentRef} className="pdf-page" style={{ width: '780px' }}>
         <div className="brand">Kupiku Coffee</div>
         <div className="brand-sub">Yogyakarta</div>
         <h1>Nota Konfirmasi Pesanan</h1>
@@ -98,6 +98,10 @@ export default function PdfNota() {
               <td style={{ textAlign: 'right' }}>
                 Status: <span style={{ color: statusColor, fontWeight: 'bold' }}>{statusLabel}</span>
               </td>
+            </tr>
+            <tr>
+              <td>Dikonfirmasi oleh: <strong>{data.pegawai?.nama ?? '-'}</strong></td>
+              <td></td>
             </tr>
           </tbody>
         </table>

@@ -80,7 +80,7 @@ export default function PdfPenjualanBulanan() {
         fontFamily: 'system-ui', textAlign: 'center',
       }}>Menyiapkan &amp; mengunduh PDF...</div>
 
-      <div ref={contentRef} className="pdf-page" style={{ position: 'absolute', top: 0, left: 0, width: '780px' }}>
+      <div ref={contentRef} className="pdf-page" style={{ width: '780px' }}>
         <div className="brand">Kupiku Coffee</div>
         <div className="brand-sub">Yogyakarta</div>
         <h1>Laporan Penjualan Bulanan</h1>
