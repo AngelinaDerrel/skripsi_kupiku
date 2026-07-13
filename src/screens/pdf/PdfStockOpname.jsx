@@ -76,9 +76,13 @@ export default function PdfStockOpname() {
         .footer { margin-top: 18px; font-size: 9px; color: #bbb; text-align: right; border-top: 1px solid #eee; padding-top: 6px; }
       `}</style>
 
-      <div style={{ padding: 40, fontFamily: 'system-ui', textAlign: 'center' }}>Menyiapkan &amp; mengunduh PDF...</div>
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 10, background: '#fff',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontFamily: 'system-ui', textAlign: 'center',
+      }}>Menyiapkan &amp; mengunduh PDF...</div>
 
-      <div ref={contentRef} className="pdf-page" style={{ position: 'fixed', top: 0, left: '-9999px', width: '780px' }}>
+      <div ref={contentRef} className="pdf-page" style={{ position: 'absolute', top: 0, left: 0, width: '780px' }}>
         <div className="brand">Kupiku Coffee</div>
         <div className="brand-sub">Yogyakarta</div>
         <h1>Laporan Stock Opname</h1>
