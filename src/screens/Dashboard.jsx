@@ -166,6 +166,7 @@ export default function Dashboard() {
   const [editMenuId, setEditMenuId] = useState('');
   const [editMenuName, setEditMenuName] = useState('');
   const [editMenuPrice, setEditMenuPrice] = useState('');
+  const [editMenuTemperature, setEditMenuTemperature] = useState('both');
   const [editIngredients, setEditIngredients] = useState([{ stockId: '', amount: '' }]);
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState('');
@@ -204,6 +205,7 @@ export default function Dashboard() {
         name: pickString(item, ['nama_menu', 'namaMenu', 'menu', 'name', 'nama', 'menu_name', 'menuName', 'judul', 'title']),
         price: item.harga ?? item.price ?? '',
         imageUrl: pickString(item, ['foto_menu', 'fotoMenu', 'image_url', 'imageUrl', 'gambar', 'photo']),
+        temperature: item.temperature ?? 'both',
         categoryLabel,
         categoryId: String(item.id_kategori ?? item.kategori?.id_kategori ?? normalizeCategoryId(categoryLabel)),
         ingredients: reseps.map((r) => ({
@@ -386,6 +388,7 @@ export default function Dashboard() {
     setEditMenuId(String(item.id));
     setEditMenuName(item.name || '');
     setEditMenuPrice(item.price ?? '');
+    setEditMenuTemperature(item.temperature || 'both');
     setEditIngredients(item.ingredients?.length ? item.ingredients : [{ stockId: '', amount: '' }]);
     setEditError('');
   }
@@ -400,6 +403,7 @@ export default function Dashboard() {
     setEditMenuId('');
     setEditMenuName('');
     setEditMenuPrice('');
+    setEditMenuTemperature('both');
     setEditIngredients([{ stockId: '', amount: '' }]);
     setEditError('');
   }
@@ -543,6 +547,7 @@ export default function Dashboard() {
       setEditSaving(true);
       const payload = {
         harga: parsedPrice,
+        temperature: editMenuTemperature || 'both',
         bahan: bahanPayload,
       };
       const updated = await api.put(`menu/${editMenuId}`, payload);
@@ -1114,6 +1119,20 @@ export default function Dashboard() {
                       background: 'var(--surface)',
                       color: 'var(--text)',
                     }}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gap: 6 }}>
+                  <label className="kp-mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>Temperature</label>
+                  <Dropdown
+                    value={editMenuTemperature}
+                    onChange={setEditMenuTemperature}
+                    options={[
+                      { value: 'hot', label: 'Hot' },
+                      { value: 'ice', label: 'Ice' },
+                      { value: 'both', label: 'Hot & Ice' },
+                    ]}
+                    placeholder="Pilih temperature"
                   />
                 </div>
 
