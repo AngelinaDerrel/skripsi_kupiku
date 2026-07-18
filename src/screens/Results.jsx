@@ -58,6 +58,7 @@ export default function Results() {
         desc: item.deskripsi || '',
         price: item.harga ?? '',
         foto: item.foto_menu || null,
+        temperature: item.temperature ?? 'both',
         notes: [],
         score: item.score ?? null,
       };
