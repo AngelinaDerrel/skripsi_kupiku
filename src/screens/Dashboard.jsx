@@ -235,14 +235,14 @@ export default function Dashboard() {
         const mapped = mapMenuItems(arr);
 
         setMenuItems(mapped);
-        if (categories.length <= 1) {
+        setCategories((prev) => {
+          if (prev.length > 1) return prev;
           const uniqueLabels = [...new Set(mapped.map((m) => String(m.categoryLabel || '').trim()).filter(Boolean))];
-          const nextCategories = [
+          return [
             { id: 'all', label: 'All' },
             ...uniqueLabels.map((label) => ({ id: normalizeCategoryId(label), label })),
           ];
-          setCategories(nextCategories);
-        }
+        });
       } catch (err) {
         if (!cancelled) setError(err?.message || 'Failed to load menu');
       } finally {
